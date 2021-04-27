@@ -29,7 +29,7 @@ public class SceneObject extends ObjObject
 	private Matrix4f shadowMVP2 = new Matrix4f();
 	private Matrix4f b = new Matrix4f();
 	
-	private int sLoc;
+	private int sLoc, mLoc, mvLoc, projLoc, nLoc, vLoc;
 	
 	public SceneObject(ImportedModel model, boolean objTiled, int texture)
 	{
@@ -55,7 +55,7 @@ public class SceneObject extends ObjObject
 			0.5f, 0.5f, 0.5f, 1.0f);
 	}
 	
-	public void passOne(int renderingProgram1, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
+	public void passOne(int renderingProgram1, Matrix4f lightPmat, Matrix4f[] lightVmats, Vector3f translation, Vector4f rotation, Vector3f scale)
 	{
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		mMat.identity();
@@ -65,13 +65,21 @@ public class SceneObject extends ObjObject
 			mMat.rotate(rotation.x, rotation.y, rotation.z, rotation.w);
 		if(scale != null)
 			mMat.scale(scale);
+		/*
 		shadowMVP1.identity();
 		shadowMVP1.mul(lightPmat);
-		shadowMVP1.mul(lightVmat);
+		shadowMVP1.mul(lightVmats[]);
 		shadowMVP1.mul(mMat);
-		
-		sLoc = gl.glGetUniformLocation(renderingProgram1, "shadowMVP");
-		gl.glUniformMatrix4fv(sLoc, 1, false, shadowMVP1.get(vals));
+		*/
+		mLoc = gl.glGetUniformLocation(renderingProgram1, "model");
+		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
+		for(int i = 0; i < 6; i++)
+		{
+			//may need to multiply by model matrix
+			sLoc = gl.glGetUniformLocation(renderingProgram1, "shadowMatrices[" + i + "]");
+			gl.glUniformMatrix4fv(sLoc, 1, false, lightVmats[i].get(vals));
+		}
+
 		
 		displayBuffer(0, 0, 3);
 		
@@ -83,7 +91,7 @@ public class SceneObject extends ObjObject
 		gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
 	}
 	
-	public void passTwo(int mvLoc, int projLoc, int nLoc, int sLoc, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
+	public void passTwo(int renderingProgram2, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
 	{
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		mMat.identity();
@@ -104,11 +112,19 @@ public class SceneObject extends ObjObject
 		
 		mvMat.invert(invTrMat);
 		invTrMat.transpose(invTrMat);
-		
+
+		mvLoc = gl.glGetUniformLocation(renderingProgram2, "mv_matrix");
+		projLoc = gl.glGetUniformLocation(renderingProgram2, "proj_matrix");
+		nLoc = gl.glGetUniformLocation(renderingProgram2, "norm_matrix");
+		sLoc = gl.glGetUniformLocation(renderingProgram2, "shadowMVP");
+		mLoc = gl.glGetUniformLocation(renderingProgram2, "model");
+		vLoc = gl.glGetUniformLocation(renderingProgram2, "view");
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(projLoc, 1, false, pMat.get(vals));
 		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
 		gl.glUniformMatrix4fv(sLoc, 1, false, shadowMVP2.get(vals));
+		gl.glUniformMatrix4fv(mLoc, 1, false, mMat.get(vals));
+		gl.glUniformMatrix4fv(vLoc, 1, false, vMat.get(vals));
 		
 		displayObjBuffers();
 		

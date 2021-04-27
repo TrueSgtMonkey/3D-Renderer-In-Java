@@ -2,8 +2,8 @@
 
 layout (location=0) in vec3 vertPos;
 
-uniform mat4 shadowMVP;
+uniform mat4 model;
 
 void main(void)
-{	gl_Position = shadowMVP * vec4(vertPos,1.0);
+{	gl_Position = model * vec4(vertPos,1.0);
 }

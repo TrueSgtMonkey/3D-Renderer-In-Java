@@ -129,16 +129,16 @@ public class Scene
 	}
 	
 	//for static objects (don't move)
-	public void passOne(int renderingProgram1, Matrix4f lightPmat, Matrix4f lightVmat)
+	public void passOne(int renderingProgram1, Matrix4f lightPmat, Matrix4f[] lightVmats)
 	{
 		for(int i = 0; i < objects.size(); i++)
 		{
-			objects.get(i).passOne(renderingProgram1, lightPmat, lightVmat, translation, rotation, scale);
+			objects.get(i).passOne(renderingProgram1, lightPmat, lightVmats, translation, rotation, scale);
 		}
 	}
 	
 	//for movable objects
-	public void passOne(int renderingProgram1, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
+	public void passOne(int renderingProgram1, Matrix4f lightPmat, Matrix4f[] lightVmats, Vector3f translation, Vector4f rotation, Vector3f scale)
 	{
 		/* making sure we use our default values in case the user does not want
 		to pass in one of these */
@@ -150,22 +150,22 @@ public class Scene
 			scale = this.scale;
 		for(int i = 0; i < objects.size(); i++)
 		{
-			objects.get(i).passOne(renderingProgram1, lightPmat, lightVmat, translation, rotation, scale);
+			objects.get(i).passOne(renderingProgram1, lightPmat, lightVmats, translation, rotation, scale);
 		}
 	}
 	
 	
 	//for movable objects
-	public void passTwo(int mvLoc, int projLoc, int nLoc, int sLoc, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat)
+	public void passTwo(int renderingProgram, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat)
 	{
 		for(int i = 0; i < objects.size(); i++)
 		{
-			objects.get(i).passTwo(mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, translation, rotation, scale);
+			objects.get(i).passTwo(renderingProgram, pMat, vMat, lightPmat, lightVmat, translation, rotation, scale);
 		}
 	}
 	
 	//for movable objects
-	public void passTwo(int mvLoc, int projLoc, int nLoc, int sLoc, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
+	public void passTwo(int renderingProgram, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
 	{
 		/* making sure we use our default values in case the user does not want
 		to pass in one of these */
@@ -177,7 +177,7 @@ public class Scene
 			scale = this.scale;
 		for(int i = 0; i < objects.size(); i++)
 		{
-			objects.get(i).passTwo(mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, translation, rotation, scale);
+			objects.get(i).passTwo(renderingProgram, pMat, vMat, lightPmat, lightVmat, translation, rotation, scale);
 		}
 	}
 	

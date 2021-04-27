@@ -1,6 +1,7 @@
 #version 430
 
 in vec3 varyingNormal, varyingLightDir, varyingVertPos, varyingHalfVec;
+in vec3 fragPos;
 in vec4 shadow_coord;
 in vec2 tc;
 in float distance;
@@ -25,19 +26,31 @@ uniform mat4 mv_matrix;
 uniform mat4 proj_matrix;
 uniform mat4 norm_matrix;
 uniform mat4 shadowMVP;
-layout (binding=0) uniform sampler2DShadow shadowTex;
+uniform float farPlane;
+layout (binding=0) uniform samplerCube shadowTex;
 layout (binding=5) uniform sampler2D samp;
 layout (binding=6) uniform sampler2D t;
 
+float shadowCalc(vec3 ragPos)
+{
+	vec3 lightToFrag = ragPos - light.position;
+
+	float depth = texture(shadowTex, lightToFrag).r;
+	depth *= farPlane;
+
+	float bias = 0.05;
+	return (depth + bias) < length(lightToFrag) ? 0.0 : 1.0;
+}
+
+/*
 float lookup(float ox, float oy)
 {
 	float t = textureProj(shadowTex, shadow_coord + vec4(ox * 0.001 * shadow_coord.w, oy * 0.001 * shadow_coord.w, -0.00075, 0.0));
 	return t;
 }
-
+*/
 void main(void)
-{	
-	float shadowFactor = 0.0;
+{
 	// normalize the light, normal, and view vectors:
 	vec3 L = normalize(varyingLightDir);
 	vec3 N = normalize(varyingNormal);
@@ -62,21 +75,8 @@ void main(void)
 	
 	vec3 lightColor = (diffuse + specular) * 0.5 + texture(samp, tc).xyz * 0.5;
 	
-	/*
-	float swidth = 0.35;
-	float endp = swidth * 3.0 + swidth / 2.0;
-	for(float m = -endp; m <= endp; m = m + swidth)
-	{
-		for(float n = -endp; n <= endp; n = n + swidth)
-		{
-			shadowFactor += lookup(m, n);
-		}
-	}
-	shadowFactor = shadowFactor / 64.0;
-	*/
-	
 	//float attenuation = 16.0 / (1.0 + (2.0 * distance) + (distance * distance));
-	
+	/*
 	float swidth = 0.35;
 	vec2 offset = mod(floor(gl_FragCoord.xy), 2.0) * swidth;
 	shadowFactor += lookup(-1.5*swidth + offset.x, 1.5*swidth-offset.y);
@@ -84,6 +84,7 @@ void main(void)
 	shadowFactor += lookup(0.5 * swidth + offset.x, 1.5 * swidth - offset.y);
 	shadowFactor += lookup(0.5 * swidth + offset.x, -0.5 * swidth - offset.y);
 	shadowFactor = shadowFactor / 4.0;
+	*/
 	
 	
 	//in case we don't wanna use pcf
@@ -96,5 +97,6 @@ void main(void)
 		fragColor = vec4((ambient + diffuse + specular), 1.0) * 0.5 + texture(samp, tc) * 0.5;
 	}
 	*/
+	float shadowFactor = shadowCalc(varyingVertPos);
 	fragColor = vec4((ambient + shadowFactor * lightColor), 1.0);// * attenuation
 }
