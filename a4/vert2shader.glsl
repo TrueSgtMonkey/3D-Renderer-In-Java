@@ -5,8 +5,7 @@ layout (location=1) in vec2 texCoord;
 layout (location=2) in vec3 vertNormal;
 out vec2 tc;
 
-out vec3 varyingNormal, varyingLightDir, varyingVertPos, varyingHalfVec;
-out vec3 fragPos;
+out vec3 varyingNormal, varyingLightDir, varyingVertPos, varyingHalfVec; 
 out vec4 shadow_coord;
 out float distance;
 
@@ -24,17 +23,15 @@ uniform vec4 globalAmbient;
 uniform PositionalLight light;
 uniform Material material;
 uniform mat4 mv_matrix;
-uniform mat4 model;
-uniform mat4 view;
 uniform mat4 proj_matrix;
 uniform mat4 norm_matrix;
 uniform mat4 shadowMVP;
 uniform float time;
+layout (binding=0) uniform sampler2DShadow shadowTex;
 
 void main(void)
 {	//output the vertex position to the rasterizer for interpolation
-	varyingVertPos = (view * model * vec4(vertPos,1.0)).xyz;
-	fragPos = vec3(model * vec4(vertPos, 1.0));
+	varyingVertPos = (mv_matrix * vec4(vertPos,1.0)).xyz;
         
 	//get a vector from the vertex to the light and output it to the rasterizer for interpolation
 	varyingLightDir = light.position - varyingVertPos;
@@ -49,5 +46,5 @@ void main(void)
 	
 	shadow_coord = shadowMVP * vec4(vertPos,1.0);
 	
-	gl_Position = proj_matrix * view * model * vec4(vertPos,1.0);
+	gl_Position = proj_matrix * mv_matrix * vec4(vertPos,1.0);
 }

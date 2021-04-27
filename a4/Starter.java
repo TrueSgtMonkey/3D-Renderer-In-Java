@@ -18,12 +18,16 @@ public class Starter extends JFrame implements GLEventListener
 	private int adder = 0;
 	private GLCanvas myCanvas;
 	private int renderingProgram1, renderingProgram2;
+	private int vao[] = new int[1];
+	private int vbo[] = new int[3];
 
 	private ViewMat view = new ViewMat();
 
 	// model stuff
 	private ArrayList<Scene> staticScenes = new ArrayList<Scene>();
 	private Scene blueguy, redguy, lightball;
+	private Torus myTorus;
+	private int numPyramidVertices, numTorusVertices, numTorusIndices;
 	
 	//variables for moving scenes
 	private Vector3f blueguyMove = new Vector3f();
@@ -67,15 +71,11 @@ public class Starter extends JFrame implements GLEventListener
 	private int scSizeX, scSizeY;
 	private int [] shadowTex = new int[1];
 	private int [] shadowBuffer = new int[1];
-	private int lsLoc, farPlaneLoc;
 	private Matrix4f lightVmat = new Matrix4f();
 	private Matrix4f lightPmat = new Matrix4f();
 	private Matrix4f shadowMVP1 = new Matrix4f();
 	private Matrix4f shadowMVP2 = new Matrix4f();
-	private Matrix4f lightvp = new Matrix4f();
-	private Matrix4f[] shadowMatrices = new Matrix4f[6];
 	private Matrix4f b = new Matrix4f();
-	private float nearPlane = 1.0f, farPlane = 1000.0f;
 
 	// allocate variables for display() function
 	private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);
@@ -91,13 +91,7 @@ public class Starter extends JFrame implements GLEventListener
 	private Vector3f currentLightPos = new Vector3f();
 	private float[] lightPos = new float[3];
 	private Vector3f origin = new Vector3f(0.0f, 0.0f, 0.0f);
-	private Vector3f right = new Vector3f(1.0f, 0.0f, 0.0f);
-	private Vector3f left = new Vector3f(-1.0f, 0.0f, 0.0f);
 	private Vector3f up = new Vector3f(0.0f, 1.0f, 0.0f);
-	private Vector3f down = new Vector3f(0.0f, -1.0f, 0.0f);
-	private Vector3f front = new Vector3f(0.0f, 0.0f, 1.0f);
-	private Vector3f back = new Vector3f(0.0f, 0.0f, -1.0f);
-	private Vector3f shadowDir = new Vector3f();
 	
 	private float add = 0.0f;
 	private double tf = 0.0;
@@ -143,56 +137,33 @@ public class Starter extends JFrame implements GLEventListener
 		add += (float)tf;
 		
 		//lightVmat.set(view.viewMat((float)tf));
-		//lightVmat.identity().setLookAt(currentLightPos, origin, up);
+		lightVmat.identity().setLookAt(currentLightPos, origin, up);
 		//lightVmat.identity().setLookAt(currentLightPos.mul(1.5f), view.c(), up);
 		//currentLightPos.set(view.c());
 		//adder += 1;
 		//lightVmat.identity().setLookAt(currentLightPos, origin, up);	// vector from light to origin
 		//System.out.println(lightVmat.toString());
-
-		lightPmat.identity().setPerspective((float) Math.toRadians(90.0f), (float)scSizeX / (float)scSizeY, nearPlane, farPlane);
-		//setting up views for each face of the shadow cube
-		shadowMatrices[0] = makeDir(currentLightPos, right, down);
-		shadowMatrices[1] = makeDir(currentLightPos, left, down);
-		shadowMatrices[2] = makeDir(currentLightPos, up, front);
-		shadowMatrices[3] = makeDir(currentLightPos, down, back);
-		shadowMatrices[4] = makeDir(currentLightPos, front, down);
-		shadowMatrices[5] = makeDir(currentLightPos, back, down);
-
+		lightPmat.identity().setPerspective((float) Math.toRadians(120.0f), aspect, 0.1f, 1000.0f);
 		//lightPmat.identity().setOrtho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 1000.0f);
 
 		gl.glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer[0]);
 		gl.glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowTex[0], 0);
+	
 		gl.glDrawBuffer(GL_NONE);
-		gl.glReadBuffer(GL_NONE);
-		//gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		gl.glEnable(GL_DEPTH_TEST);
 		
 		input();
 		passOne();
 		
 		gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		gl.glActiveTexture(GL_TEXTURE0);
-		gl.glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTex[0]);
-
-		//lightVmat.identity().setLookAt(currentLightPos, origin, up);
+		gl.glBindTexture(GL_TEXTURE_2D, shadowTex[0]);
 	
 		gl.glDrawBuffer(GL_FRONT);
 		
 		passTwo();
 		Input.get().update();
 		startTime = System.currentTimeMillis();
-	}
-
-	private Matrix4f makeDir(Vector3f pos, Vector3f dir, Vector3f eye)
-	{
-		lightvp.set(lightPmat);
-		shadowDir.set(pos);
-		shadowDir.add(dir);
-		lightVmat.identity().lookAt(pos, shadowDir, eye);
-		lightvp.mul(lightVmat);
-		return lightvp;
 	}
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	public void passOne()
@@ -201,21 +172,15 @@ public class Starter extends JFrame implements GLEventListener
 	
 		gl.glUseProgram(renderingProgram1);
 
-		lsLoc = gl.glGetUniformLocation(renderingProgram1, "lightPos");
-		farPlaneLoc = gl.glGetUniformLocation(renderingProgram1, "farPlane");
-		gl.glProgramUniform1f(renderingProgram1, farPlaneLoc, farPlane);
-		lightPos[0] = currentLightPos.x; lightPos[1] = currentLightPos.y; lightPos[2] = currentLightPos.z;
-		gl.glProgramUniform3fv(renderingProgram1, lsLoc, 1, lightPos, 0);
-
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		for(int i = 0; i < staticScenes.size(); i++)
 		{
-			staticScenes.get(i).passOne(renderingProgram1, lightPmat, shadowMatrices);
+			staticScenes.get(i).passOne(renderingProgram1, lightPmat, lightVmat);
 		}
 		
-		blueguy.passOne(renderingProgram1, lightPmat, shadowMatrices, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
-		redguy.passOne(renderingProgram1, lightPmat, shadowMatrices, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
-		lightball.passOne(renderingProgram1, lightPmat, shadowMatrices, Camera.get().c(), null, null);
+		blueguy.passOne(renderingProgram1, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
+		redguy.passOne(renderingProgram1, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
+		lightball.passOne(renderingProgram1, lightPmat, lightVmat, Camera.get().c(), null, null);
 	}
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	public void passTwo()
@@ -223,16 +188,17 @@ public class Starter extends JFrame implements GLEventListener
 	
 		gl.glUseProgram(renderingProgram2);
 		
-
+		mvLoc = gl.glGetUniformLocation(renderingProgram2, "mv_matrix");
+		projLoc = gl.glGetUniformLocation(renderingProgram2, "proj_matrix");
+		nLoc = gl.glGetUniformLocation(renderingProgram2, "norm_matrix");
+		sLoc = gl.glGetUniformLocation(renderingProgram2, "shadowMVP");
 		timeLoc = gl.glGetUniformLocation(renderingProgram2, "time");
 		screenXLoc = gl.glGetUniformLocation(renderingProgram2, "scX");
 		screenYLoc = gl.glGetUniformLocation(renderingProgram2, "scY");
-		farPlaneLoc = gl.glGetUniformLocation(renderingProgram2, "farPlane");
 		
 		gl.glProgramUniform1f(renderingProgram2, timeLoc, add);
 		gl.glProgramUniform1f(renderingProgram2, screenXLoc, scSizeX);
 		gl.glProgramUniform1f(renderingProgram2, screenXLoc, scSizeY);
-		gl.glProgramUniform1f(renderingProgram2, farPlaneLoc, farPlane);
 
 		vMat.set(Camera.get().viewMat((float)tf));
 		/*
@@ -258,7 +224,7 @@ public class Starter extends JFrame implements GLEventListener
 			
 			//gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
 			//staticScenes.get(i).vBuffers();
-			staticScenes.get(i).passTwo(renderingProgram2, pMat, vMat, lightPmat, lightVmat);
+			staticScenes.get(i).passTwo(mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat);
 		}
 		
 		thisAmb = GmatAmb;
@@ -268,9 +234,9 @@ public class Starter extends JFrame implements GLEventListener
 		
 		installLights(renderingProgram2, vMat);
 		
-		blueguy.passTwo(renderingProgram2, pMat, vMat, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
-		redguy.passTwo(renderingProgram2, pMat, vMat, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
-		lightball.passTwo(renderingProgram2, pMat, vMat, lightPmat, lightVmat, Camera.get().c(), null, null);
+		blueguy.passTwo(mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
+		redguy.passTwo(mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
+		lightball.passTwo(mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, Camera.get().c(), null, null);
 	}
 	
 	private void setupVBuffers()
@@ -284,7 +250,7 @@ public class Starter extends JFrame implements GLEventListener
 
 	public void init(GLAutoDrawable drawable)
 	{	GL4 gl = (GL4) GLContext.getCurrentGL();
-		renderingProgram1 = Utils.createShaderProgram("a4/vert1shader.glsl", "a4/geoShader.glsl", "a4/frag1shader.glsl");
+		renderingProgram1 = Utils.createShaderProgram("a4/vert1shader.glsl", "a4/frag1shader.glsl");
 		renderingProgram2 = Utils.createShaderProgram("a4/vert2shader.glsl", "a4/frag2shader.glsl");
 
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
@@ -308,29 +274,23 @@ public class Starter extends JFrame implements GLEventListener
 	
 	private void setupShadowBuffers()
 	{	GL4 gl = (GL4) GLContext.getCurrentGL();
-		scSizeX = 1024;
-		scSizeY = 1024;
+		scSizeX = myCanvas.getWidth();
+		scSizeY = myCanvas.getHeight();
 	
 		gl.glGenFramebuffers(1, shadowBuffer, 0);
 	
 		gl.glGenTextures(1, shadowTex, 0);
-		gl.glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTex[0]);
-
-		for(int i = 0; i < 6; i++)
-		{
-			gl.glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT32,
-					scSizeX, scSizeY, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
-		}
-
-		gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		//gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-		//gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+		gl.glBindTexture(GL_TEXTURE_2D, shadowTex[0]);
+		gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32,
+						scSizeX, scSizeY, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 		
 		// may reduce shadow border artifacts
-		gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
 	private void setupVertices()
@@ -390,7 +350,7 @@ public class Starter extends JFrame implements GLEventListener
 			view.setAttrib(view.c().x + -Input.get().getMouseMotion().x *(float) tf,
 			view.c().y, view.c().z + -Input.get().getMouseMotion().y * (float)tf,
 			view.getSpeed(), view.getRotationSpeed());
-			//System.out.println(view.c().toString());
+			System.out.println(view.c().toString());
 		}
 	}
 	
