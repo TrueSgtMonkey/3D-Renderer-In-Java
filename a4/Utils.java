@@ -239,64 +239,99 @@ public class Utils
 
 	public static int loadCubeMap(String dirName)
 	{	GL4 gl = (GL4) GLContext.getCurrentGL();
-		
-		String topFile = dirName + File.separator + "yp.jpg";
-		String leftFile = dirName + File.separator + "xn.jpg";
-		String backFile = dirName + File.separator + "zn.jpg";
-		String rightFile = dirName + File.separator + "xp.jpg";
-		String frontFile = dirName + File.separator + "zp.jpg";
-		String bottomFile = dirName + File.separator + "yn.jpg";
-		
-		BufferedImage topImage = getBufferedImage(topFile);
-		BufferedImage leftImage = getBufferedImage(leftFile);
-		BufferedImage frontImage = getBufferedImage(frontFile);
-		BufferedImage rightImage = getBufferedImage(rightFile);
-		BufferedImage backImage = getBufferedImage(backFile);
-		BufferedImage bottomImage = getBufferedImage(bottomFile);
-		
-		byte[] topRGBA = getRGBAPixelData(topImage, false);
-		byte[] leftRGBA = getRGBAPixelData(leftImage, false);
-		byte[] frontRGBA = getRGBAPixelData(frontImage, false);
-		byte[] rightRGBA = getRGBAPixelData(rightImage, false);
-		byte[] backRGBA = getRGBAPixelData(backImage, false);
-		byte[] bottomRGBA = getRGBAPixelData(bottomImage, false);
-		
-		ByteBuffer topWrappedRGBA = ByteBuffer.wrap(topRGBA);
-		ByteBuffer leftWrappedRGBA = ByteBuffer.wrap(leftRGBA);
-		ByteBuffer frontWrappedRGBA = ByteBuffer.wrap(frontRGBA);
-		ByteBuffer rightWrappedRGBA = ByteBuffer.wrap(rightRGBA);
-		ByteBuffer backWrappedRGBA = ByteBuffer.wrap(backRGBA);
-		ByteBuffer bottomWrappedRGBA = ByteBuffer.wrap(bottomRGBA);
 
-		int[] textureIDs = new int[1];
-		gl.glGenTextures(1, textureIDs, 0);
-		int textureID = textureIDs[0];
-		
-		checkOpenGLError();
+		//changed this code because I prefer .png files
+		File path = new File(dirName);
 
-		gl.glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
-		gl.glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA8, 1024, 1024);
-		
-		// attach the image texture to each face of the currently active OpenGL texture ID
-		gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, 0, 0, 1024, 1024,
-				GL_RGBA, GL.GL_UNSIGNED_BYTE, rightWrappedRGBA);		
-		gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, 0, 0, 1024, 1024,
-				GL_RGBA, GL.GL_UNSIGNED_BYTE, leftWrappedRGBA);
-		gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, 0, 0, 1024, 1024,
-				GL_RGBA, GL.GL_UNSIGNED_BYTE, bottomWrappedRGBA);
-		gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, 0, 0, 1024, 1024,
-				GL_RGBA, GL.GL_UNSIGNED_BYTE, topWrappedRGBA);
-		gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, 0, 0, 1024, 1024,
-				GL_RGBA, GL.GL_UNSIGNED_BYTE, frontWrappedRGBA);
-		gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, 0, 0, 1024, 1024,
-				GL_RGBA, GL.GL_UNSIGNED_BYTE, backWrappedRGBA);
+		if(path.exists())
+		{
+			File[] files = path.listFiles();
+			String topFile = dirName;
+			String leftFile = dirName;
+			String backFile = dirName;
+			String rightFile = dirName;
+			String frontFile = dirName;
+			String bottomFile = dirName;
+			if(files.length < 6)
+			{
+				System.out.println("Needs to be 6 image files in directory: \"" + dirName + "\"");
+				System.exit(70);
+			}
 
-		gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		
-		checkOpenGLError();
-		return textureID;
+			for(int i = 0; i < files.length; i++)
+			{
+				if(!(files[i].getName().contains(".png") || files[i].getName().contains(".jpg")))
+				{
+					System.out.println("Needs to be .png or .jpg image files in directory: \"" + dirName + "\"");
+					System.exit(71);
+				}
+			}
+
+			topFile += "/" + files[0].getName();
+			leftFile += "/" + files[1].getName();
+			backFile += "/" +  files[2].getName();
+			rightFile += "/" +  files[3].getName();
+			frontFile += "/" +  files[4].getName();
+			bottomFile += "/" +  files[5].getName();
+
+			BufferedImage topImage = getBufferedImage(topFile);
+			BufferedImage leftImage = getBufferedImage(leftFile);
+			BufferedImage frontImage = getBufferedImage(frontFile);
+			BufferedImage rightImage = getBufferedImage(rightFile);
+			BufferedImage backImage = getBufferedImage(backFile);
+			BufferedImage bottomImage = getBufferedImage(bottomFile);
+
+			byte[] topRGBA = getRGBAPixelData(topImage, false);
+			byte[] leftRGBA = getRGBAPixelData(leftImage, false);
+			byte[] frontRGBA = getRGBAPixelData(frontImage, false);
+			byte[] rightRGBA = getRGBAPixelData(rightImage, false);
+			byte[] backRGBA = getRGBAPixelData(backImage, false);
+			byte[] bottomRGBA = getRGBAPixelData(bottomImage, false);
+
+			ByteBuffer topWrappedRGBA = ByteBuffer.wrap(topRGBA);
+			ByteBuffer leftWrappedRGBA = ByteBuffer.wrap(leftRGBA);
+			ByteBuffer frontWrappedRGBA = ByteBuffer.wrap(frontRGBA);
+			ByteBuffer rightWrappedRGBA = ByteBuffer.wrap(rightRGBA);
+			ByteBuffer backWrappedRGBA = ByteBuffer.wrap(backRGBA);
+			ByteBuffer bottomWrappedRGBA = ByteBuffer.wrap(bottomRGBA);
+
+			int[] textureIDs = new int[1];
+			gl.glGenTextures(1, textureIDs, 0);
+			int textureID = textureIDs[0];
+
+			checkOpenGLError();
+
+			gl.glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+			gl.glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA8, 1024, 1024);
+
+			// attach the image texture to each face of the currently active OpenGL texture ID
+			gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, 0, 0, 1024, 1024,
+					GL_RGBA, GL.GL_UNSIGNED_BYTE, rightWrappedRGBA);
+			gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, 0, 0, 1024, 1024,
+					GL_RGBA, GL.GL_UNSIGNED_BYTE, leftWrappedRGBA);
+			gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, 0, 0, 1024, 1024,
+					GL_RGBA, GL.GL_UNSIGNED_BYTE, bottomWrappedRGBA);
+			gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, 0, 0, 1024, 1024,
+					GL_RGBA, GL.GL_UNSIGNED_BYTE, topWrappedRGBA);
+			gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, 0, 0, 1024, 1024,
+					GL_RGBA, GL.GL_UNSIGNED_BYTE, frontWrappedRGBA);
+			gl.glTexSubImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, 0, 0, 1024, 1024,
+					GL_RGBA, GL.GL_UNSIGNED_BYTE, backWrappedRGBA);
+
+			gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+			checkOpenGLError();
+			return textureID;
+		}
+		else
+		{
+			System.out.println("Cannot find: \"" + dirName + "\"");
+			System.exit(69);
+			//only putting this return statement here so that it compiles fine
+			return -1;
+		}
 	}
 
 	private static BufferedImage getBufferedImage(String fileName)

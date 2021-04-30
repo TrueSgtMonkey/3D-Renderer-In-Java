@@ -13,6 +13,7 @@ struct PositionalLight
 {	vec4 ambient, diffuse, specular;
 	vec3 position;
 	float distance;
+	float intensity;
 };
 struct Material
 {	vec4 ambient, diffuse, specular;   
@@ -27,7 +28,10 @@ uniform mat4 proj_matrix;
 uniform mat4 norm_matrix;
 uniform mat4 shadowMVP;
 uniform float time;
+uniform int skybox;
+uniform int reflective;
 layout (binding=0) uniform sampler2DShadow shadowTex;
+layout (binding=1) uniform samplerCube tex_map;
 
 void main(void)
 {	//output the vertex position to the rasterizer for interpolation

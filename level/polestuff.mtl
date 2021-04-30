@@ -1,7 +1,7 @@
 # Blender MTL File: 'level.blend'
 # Material Count: 2
 
-newmtl base/grating_hallways.002
+newmtl base/grating_hallways
 Ns 0.000000
 Ka 1.000000 1.000000 1.000000
 Kd 0.800000 0.800000 0.800000
@@ -11,7 +11,7 @@ Ni 1.450000
 d 1.000000
 illum 1
 
-newmtl base/pole_stone.002
+newmtl base/pole_stone
 Ns 0.000000
 Ka 1.000000 1.000000 1.000000
 Kd 0.800000 0.800000 0.800000

@@ -9,6 +9,7 @@ public class ViewMat
 {
 	//c is our camera location
 	private Vector3f u, v, n, c;
+	private Vector3f dir;
 	private Matrix4f viewMat;
 	private float speed, originalSpeed, rotSpeed;
 	private float delta;
@@ -20,6 +21,7 @@ public class ViewMat
 	{
 		rotX = rotY = rotZ = 0.0f;
 		rotVec = new Vector3f();
+		dir = new Vector3f();
 		c = new Vector3f();
 		u = new Vector3f(1.0f, 0.0f, 0.0f);
 		v = new Vector3f(0.0f, 1.0f, 0.0f);
@@ -41,6 +43,13 @@ public class ViewMat
 		this.speed = speed;
 		originalSpeed = speed;
 		this.rotSpeed = rotSpeed;
+	}
+
+	public Vector3f setDir()
+	{
+		dir.set(c);
+		dir.add(n);
+		return dir;
 	}
 	
 	/** c is the translation Matrix4f to multiply by */

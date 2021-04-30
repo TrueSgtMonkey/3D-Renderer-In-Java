@@ -20,6 +20,7 @@ public class SceneObject extends ObjObject
 {
 	private int texture;
 	private Matrix4f invTrMat = new Matrix4f(); // inverse-transpose
+	private int windingOrder = GL_CCW;
 	
 	//this objects matrices that we will use if we decide not to use stack
 	private Matrix4f mMat = new Matrix4f();
@@ -28,8 +29,11 @@ public class SceneObject extends ObjObject
 	private Matrix4f shadowMVP1 = new Matrix4f();
 	private Matrix4f shadowMVP2 = new Matrix4f();
 	private Matrix4f b = new Matrix4f();
+
+	private int reflective = 0, reflectiveLoc;
 	
-	private int sLoc;
+	private int sLoc, mvLoc;
+	private int cubePLoc, cubeVLoc;
 	
 	public SceneObject(ImportedModel model, boolean objTiled, int texture)
 	{
@@ -54,6 +58,58 @@ public class SceneObject extends ObjObject
 			0.0f, 0.0f, 0.5f, 0.0f,
 			0.5f, 0.5f, 0.5f, 1.0f);
 	}
+
+	public void setMatTranslation(float x, float y, float z)
+	{
+		mMat.identity().setTranslation(x, y, z);
+	}
+
+	/**
+	 * Use this if you want to use one image and only want to make the skybox
+	 * */
+	public void drawSkyBox(int mvLoc, int projLoc, Matrix4f vMat, Matrix4f pMat)
+	{
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+		mvMat.identity();
+		mvMat.mul(vMat);
+		mvMat.mul(mMat);
+
+		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
+		gl.glUniformMatrix4fv(projLoc, 1, false, pMat.get(vals));
+
+		gl.glActiveTexture(GL_TEXTURE5);
+		gl.glBindTexture(GL_TEXTURE_2D, texture);
+
+		displayObjBuffers();
+
+		gl.glDisable(GL_DEPTH_TEST);
+		gl.glEnable(GL_CULL_FACE);
+		gl.glFrontFace(windingOrder);
+		gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
+		gl.glEnable(GL_DEPTH_TEST);
+	}
+
+	public void drawCubeMap(int renderingProgram, Matrix4f vMat, Matrix4f pMat)
+	{
+		GL4 gl = (GL4) GLContext.getCurrentGL();
+
+		cubePLoc = gl.glGetUniformLocation(renderingProgram, "proj_matrix");
+		cubeVLoc = gl.glGetUniformLocation(renderingProgram, "v_matrix");
+
+		gl.glUniformMatrix4fv(cubePLoc, 1, false, pMat.get(vals));
+		gl.glUniformMatrix4fv(cubeVLoc, 1, false, vMat.get(vals));
+
+		displayBuffer(0, 0, 3);
+
+		gl.glActiveTexture(GL_TEXTURE0);
+		gl.glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+
+		gl.glEnable(GL_CULL_FACE);
+		gl.glFrontFace(windingOrder);
+		gl.glDisable(GL_DEPTH_TEST);
+		gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
+		gl.glEnable(GL_DEPTH_TEST);
+	}
 	
 	public void passOne(int renderingProgram1, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
 	{
@@ -76,14 +132,14 @@ public class SceneObject extends ObjObject
 		displayBuffer(0, 0, 3);
 		
 		gl.glEnable(GL_CULL_FACE);
-		gl.glFrontFace(GL_CCW);
+		gl.glFrontFace(windingOrder);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
 		
 		gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
 	}
 	
-	public void passTwo(int mvLoc, int projLoc, int nLoc, int sLoc, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
+	public void passTwo(int renderingProgram, int mvLoc, int projLoc, int nLoc, int sLoc, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
 	{
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		mMat.identity();
@@ -104,22 +160,40 @@ public class SceneObject extends ObjObject
 		
 		mvMat.invert(invTrMat);
 		invTrMat.transpose(invTrMat);
+
+		reflectiveLoc = gl.glGetUniformLocation(renderingProgram, "reflective");
 		
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(projLoc, 1, false, pMat.get(vals));
 		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
 		gl.glUniformMatrix4fv(sLoc, 1, false, shadowMVP2.get(vals));
+		gl.glUniform1i(reflectiveLoc, reflective);
 		
 		displayObjBuffers();
-		
-		gl.glActiveTexture(GL_TEXTURE5);
-		gl.glBindTexture(GL_TEXTURE_2D, texture);
+
+		if(reflective != 1)
+		{
+			gl.glActiveTexture(GL_TEXTURE5);
+			gl.glBindTexture(GL_TEXTURE_2D, texture);
+		}
+		else
+		{
+			gl.glActiveTexture(GL_TEXTURE1);
+			gl.glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+		}
 		
 		gl.glEnable(GL_CULL_FACE);
-		gl.glFrontFace(GL_CCW);
+		gl.glFrontFace(windingOrder);
 		gl.glEnable(GL_DEPTH_TEST);
 		gl.glDepthFunc(GL_LEQUAL);
 		
 		gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
 	}
+
+	public int getWindingOrder() { return windingOrder; }
+	public void setWindingOrder(int windingOrder) { this.windingOrder = windingOrder; }
+	public int reflective() { return reflective; }
+	public void setReflective(int reflective) { this.reflective = reflective; }
+	public int getTexture() { return texture; }
+	public void setTexture(int texture) { this.texture = texture; }
 }
