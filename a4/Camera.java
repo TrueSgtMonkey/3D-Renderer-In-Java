@@ -17,7 +17,7 @@ public class Camera
 {
 	//c is our camera location
 	private Vector3f u, v, n, c;
-	private Matrix4f viewMat;
+	private Matrix4f viewMat, rotMat = new Matrix4f();
 	private float speed, originalSpeed, rotSpeed;
 	private float delta;
 	private boolean isSprinting, toggleLines;
@@ -83,6 +83,17 @@ public class Camera
 					0.0f, 0.0f, 1.0f, 0.0f,
 					-c.x(), -c.y(), -c.z(), 1.0f);
 		return viewMat;
+	}
+
+	public Matrix4f rotMat(float delta)
+	{
+		this.delta = delta;
+		rotMat.identity();
+		rotMat.mul(u.x(), v.x(), n.x(), 0.0f,
+				u.y(), v.y(), n.y(), 0.0f,
+				u.z(), v.z(), n.z(), 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f);
+		return rotMat;
 	}
 	
 	public Matrix4f posMat()

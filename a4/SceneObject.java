@@ -21,16 +21,19 @@ public class SceneObject extends ObjObject
 	private int texture;
 	private Matrix4f invTrMat = new Matrix4f(); // inverse-transpose
 	private int windingOrder = GL_CCW;
+	private float[] bumpiness = new float[2];
 	
 	//this objects matrices that we will use if we decide not to use stack
 	private Matrix4f mMat = new Matrix4f();
 	private Matrix4f mvMat = new Matrix4f();
 	private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);
+	private FloatBuffer vec2vals = Buffers.newDirectFloatBuffer(2);
 	private Matrix4f shadowMVP1 = new Matrix4f();
 	private Matrix4f shadowMVP2 = new Matrix4f();
 	private Matrix4f b = new Matrix4f();
 
 	private int reflective = 0, reflectiveLoc;
+	private int bumpy = 0, bumpyLoc, bumpinessLoc;
 	
 	private int sLoc, mvLoc;
 	private int cubePLoc, cubeVLoc;
@@ -162,16 +165,20 @@ public class SceneObject extends ObjObject
 		invTrMat.transpose(invTrMat);
 
 		reflectiveLoc = gl.glGetUniformLocation(renderingProgram, "reflective");
+		bumpyLoc = gl.glGetUniformLocation(renderingProgram, "bumpy");
+		bumpinessLoc = gl.glGetUniformLocation(renderingProgram, "bumpiness");
 		
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(projLoc, 1, false, pMat.get(vals));
 		gl.glUniformMatrix4fv(nLoc, 1, false, invTrMat.get(vals));
 		gl.glUniformMatrix4fv(sLoc, 1, false, shadowMVP2.get(vals));
+		gl.glProgramUniform2fv(renderingProgram, bumpinessLoc, 1, bumpiness, 0);
 		gl.glUniform1i(reflectiveLoc, reflective);
+		gl.glUniform1i(bumpyLoc, bumpy);
 		
 		displayObjBuffers();
 
-		if(reflective != 1)
+		if(reflective == 0)
 		{
 			gl.glActiveTexture(GL_TEXTURE5);
 			gl.glBindTexture(GL_TEXTURE_2D, texture);
@@ -194,6 +201,13 @@ public class SceneObject extends ObjObject
 	public void setWindingOrder(int windingOrder) { this.windingOrder = windingOrder; }
 	public int reflective() { return reflective; }
 	public void setReflective(int reflective) { this.reflective = reflective; }
+	public int bumpy() { return bumpy; }
+	public void setBumpy(int bumpy) { this.bumpy = bumpy; }
+	public void setBumpiness(float[] bumpiness)
+	{
+		this.bumpiness[0] = bumpiness[0];
+		this.bumpiness[1] = bumpiness[1];
+	}
 	public int getTexture() { return texture; }
 	public void setTexture(int texture) { this.texture = texture; }
 }

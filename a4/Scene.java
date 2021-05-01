@@ -18,10 +18,10 @@ public class Scene
 	private ArrayList<SceneObject> objects;
 	private ArrayList<Integer> textures;
 	private int reflective = 0;
+	private int bumpy = 0;
 	private boolean visible;
 	private Vector3f translation, scale;
 	private Vector4f rotation;
-	private boolean stack;
 	private boolean color;	//will use if no textures found
 	
 	/**
@@ -32,17 +32,16 @@ public class Scene
 		@param folder : String -> specified OBJ folder to load from
 		@param textureFolder : String -> specified PNG folder to load from
 	*/
-	public Scene(String folder, String textureFolder)
+	public Scene(String folder, String textureFolder, boolean[] tile)
 	{
 		color = false;
 		objects = new ArrayList<SceneObject>();
-		this.stack = stack;
 		textures = new ArrayList<Integer>();
 		visible = true;
 		
 		//using these as functions because there are two constructors
 		getTextures(textureFolder);
-		getOBJs(folder);
+		getOBJs(folder, tile);
 	}
 	
 	/**
@@ -53,7 +52,7 @@ public class Scene
 		@param folder : String -> specified OBJ folder to load from
 		@param textureFolder : String -> specified PNG folder to load from
 	*/
-	public Scene(String folder, String textureFolder, Vector3f translation, Vector4f rotation, Vector3f scale)
+	public Scene(String folder, String textureFolder, boolean[] tile, Vector3f translation, Vector4f rotation, Vector3f scale)
 	{
 		color = false;
 		visible = true;
@@ -62,8 +61,7 @@ public class Scene
 		
 		//using these as functions because there are two constructors
 		getTextures(textureFolder);
-		getOBJs(folder);
-		this.stack = stack;
+		getOBJs(folder, tile);
 		
 		if(translation != null)
 			this.translation = translation;
@@ -96,28 +94,31 @@ public class Scene
 			color = true;
 	}
 	
-	private void getOBJs(String folder)
+	private void getOBJs(String folder, boolean[] tile)
 	{
 		File path = new File(folder);
 		//getting the OBJs from the specified folder
 		if(path.exists())
 		{
 			File[] files = path.listFiles();
-			for(int i = 0, j = 0; i < files.length; i++)
+			for(int i = 0, j = 0, t = 0; i < files.length; i++)
 			{
 				//filtering out any files besides .objs
 				if(files[i].getName().contains(".obj"))
 				{
 					if(!color)
 					{
-						objects.add(new SceneObject(new ImportedModel("../" + folder + "/" + files[i].getName()), false, textures.get(j)));
+						objects.add(new SceneObject(new ImportedModel("../" + folder + "/" + files[i].getName()), tile[t], textures.get(j)));
 						j++;
+						t++;
 						if(j == textures.size())
 							j = 0;
+						if(t == tile.length)
+							t = 0;
 					}
 					else
 					{
-						objects.add(new SceneObject(new ImportedModel("../" + folder + "/" + files[i].getName()), false, 1));
+						objects.add(new SceneObject(new ImportedModel("../" + folder + "/" + files[i].getName()), tile[t], 1));
 					}
 				}
 			}
@@ -199,12 +200,13 @@ public class Scene
 	 * @return (1 = reflective) (0 = not reflective)
 	 */
 	public int reflective() { return reflective; }
+	public int bumpy() { return bumpy; }
 
 	/**
 	 * Sets all of the objects in this scene to be reflective (or not).
 	 * @param reflective -> specifies whether all objects are reflective in scene (1 = reflective) (0 = not reflective)
 	 */
-	public void setReflective(int reflective)
+	public void setAllReflective(int reflective)
 	{
 		this.reflective = reflective;
 		for(int i = 0; i < objects.size(); i++)
@@ -213,14 +215,43 @@ public class Scene
 		}
 	}
 
+
+
 	/**
 	 * Sets the specified object to be reflective (or not).
 	 * @param reflective -> specifies whether the specific object is reflective (1 = reflective) (0 = not reflective)
 	 * @param spot -> the object we are making reflective (or not)
 	 */
-	public void setReflective(int reflective, int spot)
+	public void setOneReflective(int reflective, int spot)
 	{
 		objects.get(spot).setReflective(reflective);
+	}
+
+	public void setAllBumpy(int bumpy)
+	{
+		this.bumpy = bumpy;
+		for(int i= 0; i < objects.size(); i++)
+		{
+			objects.get(i).setBumpy(bumpy);
+		}
+	}
+
+	public void setOneBumpy(int bumpy, int spot)
+	{
+		objects.get(spot).setBumpy(bumpy);
+	}
+
+	public void setAllBumpiness(float[] bumpiness)
+	{
+		for(int i= 0; i < objects.size(); i++)
+		{
+			objects.get(i).setBumpiness(bumpiness);
+		}
+	}
+
+	public void setOneBumpiness(float[] bumpiness, int spot)
+	{
+		objects.get(spot).setBumpiness(bumpiness);
 	}
 
 	/**

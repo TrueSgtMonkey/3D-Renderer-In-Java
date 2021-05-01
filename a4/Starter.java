@@ -19,24 +19,27 @@ public class Starter extends JFrame implements GLEventListener
 	private GLCanvas myCanvas;
 	private int renderingProgram1, renderingProgram2;
 
+	private float fov = 70.0f;
+
 	private boolean heldDown = false;
 
 	private ViewMat view = new ViewMat();
 
 	// model stuff
 	private ArrayList<Scene> staticScenes = new ArrayList<Scene>();
-	private Scene blueguy, redguy, lightball;
+	private Scene blueguy, redguy, chromeguy, lightball;
 
 	private SceneObject skybox, refspear1, refspear2;
 	
 	//variables for moving scenes
 	private Vector3f blueguyMove = new Vector3f();
 	private Vector3f redguyMove = new Vector3f();
+	private Vector3f chromeguyMove = new Vector3f();
 	private Vector3f cameraLoc = new Vector3f(12.37f, 5.0f, 0.2f);
-	private Vector3f lightLoc = new Vector3f(-9.153f, 44.76f, -0.75f);
+	private Vector3f lightLoc = new Vector3f(-9.153f, 192.0f, -0.75f);
 	
 	// white light properties
-	private float[] globalAmbient = new float[] { 0.1f, 0.1f, 0.1f, 1.0f };
+	private float[] globalAmbient = new float[] { 0.01f, 0.01f, 0.01f, 1.0f };
 	private float[] lightAmbient = new float[] { 0.0f, 0.0f, 0.0f, 1.0f };
 	private float[] lightDiffuse = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
 	private float[] lightSpecular = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -146,8 +149,8 @@ public class Starter extends JFrame implements GLEventListener
 		//currentLightPos.set(view.c());
 		//lightVmat.identity().setLookAt(currentLightPos, origin, up);	// vector from light to origin
 		//System.out.println(lightVmat.toString());
-		lightPmat.identity().setPerspective((float) Math.toRadians(120.0f), aspect, 0.1f, 1000.0f);
-		//lightPmat.identity().setOrtho(-1024.0f, 1024.0f, -1024.0f, 1024.0f, 0.1f, 1000.0f);
+		lightPmat.identity().setPerspective((float) Math.toRadians(36.0f), aspect, 0.1f, 1000.0f);
+		//lightPmat.identity().setOrtho(-96.0f, 96.0f, -96.0f, 96.0f, 1.0f, 200.0f);
 
 		gl.glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer[0]);
 		gl.glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowTex[0], 0);
@@ -186,6 +189,7 @@ public class Starter extends JFrame implements GLEventListener
 		refspear2.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
 		blueguy.passOne(renderingProgram1, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
 		redguy.passOne(renderingProgram1, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
+		chromeguy.passOne(renderingProgram1, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), null, null);
 		if(lightball.isVisible())
 			lightball.passOne(renderingProgram1, lightPmat, lightVmat, Camera.get().c(), null, null);
 	}
@@ -254,6 +258,7 @@ public class Starter extends JFrame implements GLEventListener
 		refspear2.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		blueguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
 		redguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
+		chromeguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), null, null);
 		lightball.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, Camera.get().c(), null, null);
 	}
 	
@@ -273,7 +278,7 @@ public class Starter extends JFrame implements GLEventListener
 		renderingProgramCubeMap = Utils.createShaderProgram("a4/vertCShader.glsl", "a4/fragCShader.glsl");
 
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
-		pMat.identity().setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
+		pMat.identity().setPerspective((float) Math.toRadians(fov), aspect, 0.1f, 1000.0f);
 
 		lightLoc.mul(camScale);
 		view.setAttrib(lightLoc.x, lightLoc.y, lightLoc.z, 9.0f, 1.0f);
@@ -320,26 +325,39 @@ public class Starter extends JFrame implements GLEventListener
 		refspear1 = new SceneObject(new ImportedModel("../reflectspears/refspear1.obj"), false, skybox.getTexture());
 		refspear2 = new SceneObject(new ImportedModel("../reflectspears/refspear2.obj"), false, skybox.getTexture());
 		refspear1.setReflective(1);
+		refspear1.setBumpy(1);
+		refspear1.setBumpiness(new float[]{0.125f, 13.8f});
 		refspear2.setReflective(1);
+		refspear2.setBumpy(1);
+		refspear2.setBumpiness(new float[]{0.125f, 13.8f});
 
 		gl.glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		//blender by default uses CCW winding order
 		skybox.setWindingOrder(GL_CW);
 	
 		//all the .obj initializations done
-		staticScenes.add(new Scene("level", "level/textures"));
+		boolean[] no = {false};
+		boolean[] leveltile = {true, false, true, false, false, false};
+		staticScenes.add(new Scene("level", "level/textures", leveltile));
 		/*
 		//just an example of how to set a sub-scene's object to be reflective
 		staticScenes.get(0).setOneTexture(skybox.getTexture(), 4);
 		staticScenes.get(0).setReflective(1, 4);
 		*/
-		staticScenes.add(new Scene("lightball", "lightball/textures", view.c(), null, new Vector3f(0.25f, 0.25f, 0.25f)));
+		staticScenes.add(new Scene("lightball", "lightball/textures", no, view.c(), null, new Vector3f(0.25f, 0.25f, 0.25f)));
 		staticScenes.get(1).setVisible(true);
-		staticScenes.add(new Scene("signscene", "signscene/textures", new Vector3f(-9.205f, -0.76875f,  2.731f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.35f, 0.35f, 0.35f)));
-		staticScenes.add(new Scene("tablescene", "tablescene/textures", new Vector3f(-10.94f, -0.38875f, -0.2291f), null, new Vector3f(0.5f, 0.5f, 0.5f)));
+		staticScenes.add(new Scene("signscene", "signscene/textures", no, new Vector3f(-9.205f, -0.76875f,  2.731f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.35f, 0.35f, 0.35f)));
+		staticScenes.add(new Scene("tablescene", "tablescene/textures", no, new Vector3f(-10.94f, -0.38875f, -0.2291f), null, new Vector3f(0.5f, 0.5f, 0.5f)));
 		
-		blueguy = new Scene("blueguy", "blueguy/textures", new Vector3f(-8.767f,  0.06647f, -3.146f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.75f, 0.75f, 0.75f));
-		redguy = new Scene("redguy", "redguy/textures", new Vector3f(-11.12f,  0.1142f,  1.186f), new Vector4f(0.7853981f, 0.0f, 1.0f, 0.0f), new Vector3f(0.2f, 0.2f, 0.2f));
-		lightball = new Scene("lightball", "lightball/textures", Camera.get().c(), null, new Vector3f(0.5f, 0.5f, 0.5f));
+		blueguy = new Scene("blueguy", "blueguy/textures", no, new Vector3f(-8.767f,  0.06647f, -3.146f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.75f, 0.75f, 0.75f));
+		redguy = new Scene("redguy", "redguy/textures", no, new Vector3f(-11.12f,  0.1142f,  1.186f), new Vector4f(0.7853981f, 0.0f, 1.0f, 0.0f), new Vector3f(0.2f, 0.2f, 0.2f));
+		chromeguy = new Scene("chromeguy", "chromeguy/textures", no, new Vector3f(0.0f, 7.3f, 0.0f), null, null);
+		//making the body of this chromeguy chrome
+		chromeguy.setOneReflective(1, 0);
+//		chromeguy.setOneBumpy(1, 0);
+//		chromeguy.setOneBumpiness(new float[]{0.075f, 1.25f}, 0);
+		chromeguy.setOneTexture(skybox.getTexture(), 0);
+		lightball = new Scene("lightball", "lightball/textures", no, Camera.get().c(), null, new Vector3f(0.5f, 0.5f, 0.5f));
 	}
 	
 	public void input()
@@ -454,7 +472,7 @@ public class Starter extends JFrame implements GLEventListener
 	{	GL4 gl = (GL4) GLContext.getCurrentGL();
 
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
-		pMat.identity().setPerspective((float) Math.toRadians(60.0f), aspect, 0.1f, 1000.0f);
+		pMat.identity().setPerspective((float) Math.toRadians(fov), aspect, 0.1f, 1000.0f);
 
 		setupShadowBuffers();
 	}

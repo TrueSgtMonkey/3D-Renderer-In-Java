@@ -5,7 +5,8 @@ layout (location=1) in vec2 texCoord;
 layout (location=2) in vec3 vertNormal;
 out vec2 tc;
 
-out vec3 varyingNormal, varyingLightDir, varyingVertPos, varyingHalfVec; 
+out vec3 varyingNormal, varyingLightDir, varyingVertPos, varyingHalfVec;
+out vec3 originalVertex;
 out vec4 shadow_coord;
 out float distance;
 
@@ -49,6 +50,8 @@ void main(void)
 	varyingHalfVec = (varyingLightDir-varyingVertPos).xyz;
 	
 	shadow_coord = shadowMVP * vec4(vertPos,1.0);
+
+	originalVertex = vertPos;
 	
 	gl_Position = proj_matrix * mv_matrix * vec4(vertPos,1.0);
 }
