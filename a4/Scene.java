@@ -38,6 +38,10 @@ public class Scene
 		objects = new ArrayList<SceneObject>();
 		textures = new ArrayList<Integer>();
 		visible = true;
+
+		translation = new Vector3f();
+		scale = new Vector3f(1.0f, 1.0f, 1.0f);
+		rotation = new Vector4f();
 		
 		//using these as functions because there are two constructors
 		getTextures(textureFolder);
@@ -65,10 +69,18 @@ public class Scene
 		
 		if(translation != null)
 			this.translation = translation;
+		else
+			this.translation = new Vector3f();
+
+
 		if(rotation != null)
 			this.rotation = rotation;
+		else
+			this.rotation = new Vector4f();
 		if(scale != null)
 			this.scale = scale;
+		else
+			this.scale = new Vector3f(1.0f, 1.0f, 1.0f);
 	}
 	
 	private void getTextures(String textureFolder)

@@ -96,6 +96,7 @@ public class SceneObject extends ObjObject
 	{
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 
+
 		cubePLoc = gl.glGetUniformLocation(renderingProgram, "proj_matrix");
 		cubeVLoc = gl.glGetUniformLocation(renderingProgram, "v_matrix");
 
@@ -103,6 +104,7 @@ public class SceneObject extends ObjObject
 		gl.glUniformMatrix4fv(cubeVLoc, 1, false, vMat.get(vals));
 
 		displayBuffer(0, 0, 3);
+
 
 		gl.glActiveTexture(GL_TEXTURE0);
 		gl.glBindTexture(GL_TEXTURE_CUBE_MAP, texture);

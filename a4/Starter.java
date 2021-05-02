@@ -21,22 +21,27 @@ public class Starter extends JFrame implements GLEventListener
 
 	private float fov = 70.0f;
 
-	private boolean heldDown = false;
+	private boolean heldDown[] = {false, false};
 
 	private ViewMat view = new ViewMat();
+
+	private float sceneScale = 0.25f;
 
 	// model stuff
 	private ArrayList<Scene> staticScenes = new ArrayList<Scene>();
 	private Scene blueguy, redguy, chromeguy, lightball;
 
-	private SceneObject skybox, refspear1, refspear2;
+	private SceneObject skybox, refspear1, refspear2,  reflectcarrierlegs;
 	
 	//variables for moving scenes
 	private Vector3f blueguyMove = new Vector3f();
 	private Vector3f redguyMove = new Vector3f();
 	private Vector3f chromeguyMove = new Vector3f();
+	private Vector4f chromeguyRotate = new Vector4f();
 	private Vector3f cameraLoc = new Vector3f(12.37f, 5.0f, 0.2f);
 	private Vector3f lightLoc = new Vector3f(-9.153f, 192.0f, -0.75f);
+
+	private Vector3f[] points = new Vector3f[8];
 	
 	// white light properties
 	private float[] globalAmbient = new float[] { 0.01f, 0.01f, 0.01f, 1.0f };
@@ -82,8 +87,14 @@ public class Starter extends JFrame implements GLEventListener
 	private int skyboxTexture;
 	private int cameraposLoc;
 
+	//fog stuff
+	private int fogLoc, fogColorLoc, fogStartLoc, fogEndLoc, fog = 1;
+	private float[] fogColor = {0.7f, 0.8f, 0.9f, 1.0f};
+	private float fogStart = 20.0f, fogEnd = 80.0f;
+
 	// allocate variables for display() function
 	private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);
+	private FloatBuffer vec4vals = Buffers.newDirectFloatBuffer(4);
 	private FloatBuffer vecvals = Buffers.newDirectFloatBuffer(3);
 	private Matrix4f pMat = new Matrix4f();  // perspective matrix
 	private Matrix4f vMat = new Matrix4f();  // view matrix
@@ -121,7 +132,7 @@ public class Starter extends JFrame implements GLEventListener
 		myCanvas.addMouseWheelListener(Input.get());
 		this.addMouseWheelListener(Input.get());
 		
-		Camera.get().setAttrib(cameraLoc.x(), cameraLoc.y(), cameraLoc.z(), 9.0f, 1.5f);
+		Camera.get().setAttrib(cameraLoc.x(), cameraLoc.y(), cameraLoc.z(), 9.0f, 1.5707f);
 		Camera.get().horRot(1.5707963267f);
 		
 		this.add(myCanvas);
@@ -134,6 +145,7 @@ public class Starter extends JFrame implements GLEventListener
 	public void display(GLAutoDrawable drawable)
 	{	
 		GL4 gl = (GL4) GLContext.getCurrentGL();
+		gl.glClearColor(fogColor[0], fogColor[1], fogColor[2], fogColor[3]);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		
@@ -149,7 +161,16 @@ public class Starter extends JFrame implements GLEventListener
 		//currentLightPos.set(view.c());
 		//lightVmat.identity().setLookAt(currentLightPos, origin, up);	// vector from light to origin
 		//System.out.println(lightVmat.toString());
-		lightPmat.identity().setPerspective((float) Math.toRadians(36.0f), aspect, 0.1f, 1000.0f);
+		lightPmat.identity().setPerspective((float) Math.toRadians(42.0f), 1.0f, 0.1f, 1000.0f);
+		/*
+		for(int i = 0; i < points.length; i++)
+		{
+			vMat.frustumCorner(i, points[i]);
+			System.out.println(points[i].toString());
+
+		}
+		*/
+
 		//lightPmat.identity().setOrtho(-96.0f, 96.0f, -96.0f, 96.0f, 1.0f, 200.0f);
 
 		gl.glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer[0]);
@@ -187,9 +208,10 @@ public class Starter extends JFrame implements GLEventListener
 
 		refspear1.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
 		refspear2.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
+		reflectcarrierlegs.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
 		blueguy.passOne(renderingProgram1, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
 		redguy.passOne(renderingProgram1, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
-		chromeguy.passOne(renderingProgram1, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), null, null);
+		chromeguy.passOne(renderingProgram1, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), chromeguyRotate.set(Camera.get().rotationVec().y - 1.5707963f, 0.0f, 1.0f, 0.0f), null);
 		if(lightball.isVisible())
 			lightball.passOne(renderingProgram1, lightPmat, lightVmat, Camera.get().c(), null, null);
 	}
@@ -200,7 +222,8 @@ public class Starter extends JFrame implements GLEventListener
 		vMat.set(Camera.get().viewMat((float)tf));
 		gl.glUseProgram(renderingProgramCubeMap);
 
-		skybox.drawCubeMap(renderingProgramCubeMap, vMat, pMat);
+		if(fog == 0)
+			skybox.drawCubeMap(renderingProgramCubeMap, vMat, pMat);
 
 		gl.glUseProgram(renderingProgram2);
 		
@@ -212,11 +235,19 @@ public class Starter extends JFrame implements GLEventListener
 		screenXLoc = gl.glGetUniformLocation(renderingProgram2, "scX");
 		screenYLoc = gl.glGetUniformLocation(renderingProgram2, "scY");
 		skyBoxLoc = gl.glGetUniformLocation(renderingProgram2, "skybox");
+		fogLoc = gl.glGetUniformLocation(renderingProgram2, "fog.enabled");
+		fogColorLoc = gl.glGetUniformLocation(renderingProgram2, "fog.color");
+		fogStartLoc = gl.glGetUniformLocation(renderingProgram2, "fog.start");
+		fogEndLoc = gl.glGetUniformLocation(renderingProgram2, "fog.end");
 		
 		gl.glProgramUniform1f(renderingProgram2, timeLoc, add);
 		gl.glProgramUniform1i(renderingProgram2, skyBoxLoc, 1);
+		gl.glProgramUniform1i(renderingProgram2, fogLoc, fog);
 		gl.glProgramUniform1f(renderingProgram2, screenXLoc, scSizeX);
 		gl.glProgramUniform1f(renderingProgram2, screenXLoc, scSizeY);
+		gl.glProgramUniform1f(renderingProgram2, fogStartLoc, fogStart);
+		gl.glProgramUniform1f(renderingProgram2, fogEndLoc, fogEnd);
+		gl.glProgramUniform4fv(renderingProgram2, fogColorLoc, 1, fogColor, 0);
 
 		gl.glProgramUniform1i(renderingProgram2, skyBoxLoc, 0);
 
@@ -256,9 +287,10 @@ public class Starter extends JFrame implements GLEventListener
 
 		refspear1.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		refspear2.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+		reflectcarrierlegs.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		blueguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
 		redguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
-		chromeguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), null, null);
+		chromeguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), chromeguyRotate.set(Camera.get().rotationVec().y - 1.5707963f, 0.0f, 1.0f, 0.0f), null);
 		lightball.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, Camera.get().c(), null, null);
 	}
 	
@@ -279,6 +311,7 @@ public class Starter extends JFrame implements GLEventListener
 
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
 		pMat.identity().setPerspective((float) Math.toRadians(fov), aspect, 0.1f, 1000.0f);
+		//pMat.identity().setOrtho((float)-myCanvas.getWidth() * 0.125f, (float)myCanvas.getWidth() * 0.125f, (float)-myCanvas.getHeight() * 0.125f, (float)myCanvas.getHeight() * 0.125f, 1.0f, 100.0f);
 
 		lightLoc.mul(camScale);
 		view.setAttrib(lightLoc.x, lightLoc.y, lightLoc.z, 9.0f, 1.0f);
@@ -324,12 +357,16 @@ public class Starter extends JFrame implements GLEventListener
 		skybox = new SceneObject(new ImportedModel("../skybox.obj"), false, Utils.loadCubeMap("skybox_shots"));
 		refspear1 = new SceneObject(new ImportedModel("../reflectspears/refspear1.obj"), false, skybox.getTexture());
 		refspear2 = new SceneObject(new ImportedModel("../reflectspears/refspear2.obj"), false, skybox.getTexture());
+		reflectcarrierlegs = new SceneObject(new ImportedModel("../reflectobjects/reflect_carrier_legs.obj"), false, skybox.getTexture());
 		refspear1.setReflective(1);
 		refspear1.setBumpy(1);
-		refspear1.setBumpiness(new float[]{0.125f, 13.8f});
+		refspear1.setBumpiness(new float[]{0.0625f, 1.38f});
 		refspear2.setReflective(1);
 		refspear2.setBumpy(1);
-		refspear2.setBumpiness(new float[]{0.125f, 13.8f});
+		refspear2.setBumpiness(new float[]{0.0625f, 1.38f});
+		reflectcarrierlegs.setReflective(1);
+		//reflectcarrierlegs.setBumpy(1);
+		//reflectcarrierlegs.setBumpiness(new float[]{1.20f, 16.00f});
 
 		gl.glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		//blender by default uses CCW winding order
@@ -348,14 +385,35 @@ public class Starter extends JFrame implements GLEventListener
 		staticScenes.get(1).setVisible(true);
 		staticScenes.add(new Scene("signscene", "signscene/textures", no, new Vector3f(-9.205f, -0.76875f,  2.731f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.35f, 0.35f, 0.35f)));
 		staticScenes.add(new Scene("tablescene", "tablescene/textures", no, new Vector3f(-10.94f, -0.38875f, -0.2291f), null, new Vector3f(0.5f, 0.5f, 0.5f)));
-		
+
+		int index = 7;
+		staticScenes.get(3).setOneReflective(1, index);
+		staticScenes.get(3).setOneBumpy(1, index);
+		staticScenes.get(3).setOneBumpiness(new float[]{15.0f, 13.8f}, index);
+		staticScenes.get(3).setOneTexture(skybox.getTexture(), index);
+		staticScenes.add(new Scene("reflectobjects/refmound", "reflectobjects/refmound/textures", no, null, null, null));
+		staticScenes.get(4).setOneReflective(1, 0);
+		staticScenes.get(4).setOneBumpy(1, 0);
+		staticScenes.get(4).setOneBumpiness(new float[]{0.25f, 6.9f}, 0);
+		staticScenes.get(4).setOneTexture(skybox.getTexture(), 0);
+
+
+		for(int i = 0; i < points.length; i++)
+		{
+			points[i] = new Vector3f();
+		}
+
 		blueguy = new Scene("blueguy", "blueguy/textures", no, new Vector3f(-8.767f,  0.06647f, -3.146f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.75f, 0.75f, 0.75f));
+		blueguy.setOneBumpy(1, 0);
+		blueguy.setOneBumpiness(new float[]{0.1875f, 2.5f}, 0);
 		redguy = new Scene("redguy", "redguy/textures", no, new Vector3f(-11.12f,  0.1142f,  1.186f), new Vector4f(0.7853981f, 0.0f, 1.0f, 0.0f), new Vector3f(0.2f, 0.2f, 0.2f));
+		redguy.setOneBumpy(1, 2);
+		redguy.setOneBumpiness(new float[]{0.375f, 1.25f}, 2);
 		chromeguy = new Scene("chromeguy", "chromeguy/textures", no, new Vector3f(0.0f, 7.3f, 0.0f), null, null);
 		//making the body of this chromeguy chrome
 		chromeguy.setOneReflective(1, 0);
-//		chromeguy.setOneBumpy(1, 0);
-//		chromeguy.setOneBumpiness(new float[]{0.075f, 1.25f}, 0);
+		chromeguy.setOneBumpy(1, 0);
+		chromeguy.setOneBumpiness(new float[]{0.075f, 1.25f}, 0);
 		chromeguy.setOneTexture(skybox.getTexture(), 0);
 		lightball = new Scene("lightball", "lightball/textures", no, Camera.get().c(), null, new Vector3f(0.5f, 0.5f, 0.5f));
 	}
@@ -366,15 +424,15 @@ public class Starter extends JFrame implements GLEventListener
 		{
 			if (Input.get().isKeyPressed(KeyEvent.VK_L))
 			{
-				if(!heldDown)
+				if(!heldDown[0])
 				{
 					staticScenes.get(1).setVisible(!staticScenes.get(1).isVisible());
 					System.out.println("lightball visibility changed...");
-					heldDown = true;
+					heldDown[0] = true;
 				}
 			}
 			else
-				heldDown = false;
+				heldDown[0] = false;
 			if (Input.get().isKeyPressed(KeyEvent.VK_W))
 				Camera.get().addNeg(Camera.get().n());
 			if (Input.get().isKeyPressed(KeyEvent.VK_S))
@@ -387,6 +445,19 @@ public class Starter extends JFrame implements GLEventListener
 				Camera.get().addNeg(Camera.get().v());
 			if (Input.get().isKeyPressed(KeyEvent.VK_Q))
 				Camera.get().addPos(Camera.get().v());
+			if(Input.get().isKeyPressed(KeyEvent.VK_F))
+			{
+				if(!heldDown[1])
+				{
+					if (fog != 0)
+						fog = 0;
+					else
+						fog = 1;
+					heldDown[1] = true;
+				}
+			}
+			else
+				heldDown[1] = false;
 			//System.out.println(Camera.get().c());
 			if (Input.get().isKeyPressed(KeyEvent.VK_UP))
 				Camera.get().vertRot(Camera.get().getRotationSpeed() * (float) tf);
@@ -402,12 +473,15 @@ public class Starter extends JFrame implements GLEventListener
 				Camera.get().setSprinting(false);
 		}
 		else
-			heldDown = false;
+		{
+			for(int i = 0; i < heldDown.length; i++)
+				heldDown[i] = false;
+		}
 		
 		if(Input.get().isMouseWheelMoved())
 		{
 			//lightLoc.add(0.0f, -(float)Input.get().mouseWheelTicks() * (float)tf, 0.0f);
-			view.setAttrib(view.c().x, view.c().y - (float)Input.get().mouseWheelTicks() * 
+			view.setAttrib(view.c().x, view.c().y - (float)Input.get().mouseWheelTicks() *
 			(float)tf * view.getSpeed(), view.c().z, view.getSpeed(), view.getRotationSpeed());
 			//System.out.println(view.c().toString());
 		}
@@ -473,6 +547,7 @@ public class Starter extends JFrame implements GLEventListener
 
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
 		pMat.identity().setPerspective((float) Math.toRadians(fov), aspect, 0.1f, 1000.0f);
+		//pMat.identity().setOrtho((float)-myCanvas.getWidth(), (float)myCanvas.getWidth(), (float)-myCanvas.getHeight(), (float)myCanvas.getHeight(), 1.0f, 1000.0f);
 
 		setupShadowBuffers();
 	}

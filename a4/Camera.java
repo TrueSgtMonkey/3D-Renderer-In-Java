@@ -157,14 +157,4 @@ public class Camera
 	
 	public float getSpeed() { return speed; }
 	public float getRotationSpeed() { return rotSpeed; }
-	
-	
-	/** not needed in this program. */
-	public void keyTyped(KeyEvent e) {}
-	
-	
-	public void keyReleased(KeyEvent e) 
-	{
-		
-	}
 }

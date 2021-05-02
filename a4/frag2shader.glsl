@@ -25,10 +25,20 @@ struct Material
 	float shininess;
 };
 
+struct Fog
+{
+	int enabled;
+	vec4 color;
+	float start;
+	float end;
+};
+
 uniform vec4 globalAmbient;
+uniform vec4 fogColor;
 uniform PositionalLight light;
 uniform Material material;
 uniform Camera camera;
+uniform Fog fog;
 uniform vec2 bumpiness;
 uniform mat4 mv_matrix; 
 uniform mat4 proj_matrix;
@@ -86,10 +96,17 @@ vec3 perturb(vec3 N, float bumpHeight, float bumpWidth)
 	float x = originalVertex.x;
 	float y = originalVertex.y;
 	float z = originalVertex.z;
-	N.x = varyingNormal.x + bumpHeight*cos(bumpWidth*x);
-	N.y = varyingNormal.y + bumpHeight*sin(bumpWidth*y);
-	N.z = varyingNormal.z + -bumpHeight*cos(bumpWidth*z);
+	N.x = varyingNormal.x + bumpHeight*tan(bumpWidth*x);
+	N.y = varyingNormal.y + bumpHeight*tan(bumpWidth*y);
+	N.z = varyingNormal.z + bumpHeight*tan(bumpWidth*z);
 	return normalize(N);	//return the normalized vector
+}
+
+float getFogFactor(float fogStart, float fogEnd)
+{
+	float dist = length(varyingVertPos);
+	float fogFactor = clamp(((fogEnd - dist) / (fogEnd - fogStart)), 0.0, 1.0);
+	return fogFactor;
 }
 
 void main(void)
@@ -146,7 +163,15 @@ void main(void)
 
 		//float notInShadow = shadowCalc();
 
-		fragColor = vec4((ambient + shadowFactor * light.intensity * lightColor), 1.0);// * attenuation
+		vec4 color = vec4((ambient + shadowFactor * light.intensity * lightColor), 1.0);// * attenuation
+		if(fog.enabled != 0)
+		{
+			fragColor = mix(fog.color, color, getFogFactor(fog.start, fog.end));
+		}
+		else
+		{
+			fragColor = color;
+		}
 	}
 	else
 		fragColor = texture(samp, tc);
