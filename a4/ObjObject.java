@@ -21,6 +21,7 @@ public class ObjObject extends HandMadeObject
 		initBuffer(0, getVertCoord());
 		initBuffer(1, getTextCoord());
 		initBuffer(2, getNormCoord());
+		initBuffer(3, getTanCoord());
 	}
 	
 	public void displayObjBuffers()
@@ -28,6 +29,7 @@ public class ObjObject extends HandMadeObject
 		displayBuffer(0, 0, 3);
 		displayBuffer(1, 1, 2);
 		displayBuffer(2, 2, 3);
+		displayBuffer(3, 3, 3);
 	}
 	
 	public int getNumVertices()

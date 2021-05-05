@@ -17,6 +17,7 @@ public class Scene
 {
 	private ArrayList<SceneObject> objects;
 	private ArrayList<Integer> textures;
+	private ArrayList<Integer> normals;
 	private int reflective = 0;
 	private int bumpy = 0;
 	private boolean visible;
@@ -32,11 +33,12 @@ public class Scene
 		@param folder : String -> specified OBJ folder to load from
 		@param textureFolder : String -> specified PNG folder to load from
 	*/
-	public Scene(String folder, String textureFolder, boolean[] tile)
+	public Scene(String folder, String textureFolder, String normalFolder, boolean[] tile)
 	{
 		color = false;
 		objects = new ArrayList<SceneObject>();
 		textures = new ArrayList<Integer>();
+		normals = new ArrayList<Integer>();
 		visible = true;
 
 		translation = new Vector3f();
@@ -44,7 +46,8 @@ public class Scene
 		rotation = new Vector4f();
 		
 		//using these as functions because there are two constructors
-		getTextures(textureFolder);
+		textures = getTextures(textureFolder, textures);
+		normals = getTextures(normalFolder, normals);
 		getOBJs(folder, tile);
 	}
 	
@@ -56,15 +59,17 @@ public class Scene
 		@param folder : String -> specified OBJ folder to load from
 		@param textureFolder : String -> specified PNG folder to load from
 	*/
-	public Scene(String folder, String textureFolder, boolean[] tile, Vector3f translation, Vector4f rotation, Vector3f scale)
+	public Scene(String folder, String textureFolder, String normalFolder, boolean[] tile, Vector3f translation, Vector4f rotation, Vector3f scale)
 	{
 		color = false;
 		visible = true;
 		objects = new ArrayList<SceneObject>();
 		textures = new ArrayList<Integer>();
+		normals = new ArrayList<Integer>();
 		
 		//using these as functions because there are two constructors
-		getTextures(textureFolder);
+		textures = getTextures(textureFolder, textures);
+		normals = getTextures(normalFolder, normals);
 		getOBJs(folder, tile);
 		
 		if(translation != null)
@@ -83,7 +88,7 @@ public class Scene
 			this.scale = new Vector3f(1.0f, 1.0f, 1.0f);
 	}
 	
-	private void getTextures(String textureFolder)
+	private ArrayList<Integer> getTextures(String textureFolder, ArrayList<Integer> texts)
 	{
 		File path2 = new File(textureFolder);
 		
@@ -96,14 +101,15 @@ public class Scene
 				//filtering out any other files besides .pngs
 				if(files[i].getName().contains(".png") || files[i].getName().contains(".jpg"))
 				{
-					textures.add(Utils.loadTexture(textureFolder + "/" + files[i].getName(), true));
+					texts.add(Utils.loadTexture(textureFolder + "/" + files[i].getName(), true));
 				}
 			}
 		}
 		
 		//no textures were found
-		if(textures.size() == 0)
+		if(texts.size() == 0)
 			color = true;
+		return texts;
 	}
 	
 	private void getOBJs(String folder, boolean[] tile)
@@ -113,24 +119,27 @@ public class Scene
 		if(path.exists())
 		{
 			File[] files = path.listFiles();
-			for(int i = 0, j = 0, t = 0; i < files.length; i++)
+			for(int i = 0, j = 0, t = 0, n = 0; i < files.length; i++)
 			{
 				//filtering out any files besides .objs
 				if(files[i].getName().contains(".obj"))
 				{
 					if(!color)
 					{
-						objects.add(new SceneObject(new ImportedModel("../" + folder + "/" + files[i].getName()), tile[t], textures.get(j)));
+						objects.add(new SceneObject(new ImportedModel("../" + folder + "/" + files[i].getName()), tile[t], textures.get(j), normals.get(n)));
 						j++;
 						t++;
+						n++;
 						if(j == textures.size())
 							j = 0;
 						if(t == tile.length)
 							t = 0;
+						if(n == normals.size())
+							n = 0;
 					}
 					else
 					{
-						objects.add(new SceneObject(new ImportedModel("../" + folder + "/" + files[i].getName()), tile[t], 1));
+						objects.add(new SceneObject(new ImportedModel("../" + folder + "/" + files[i].getName()), tile[t], -1, -1));
 					}
 				}
 			}
@@ -227,7 +236,41 @@ public class Scene
 		}
 	}
 
+	public void setAllTransparent(boolean transparent)
+	{
+		for(int i = 0; i < objects.size(); i++)
+		{
+			objects.get(i).setTransparent(transparent);
+		}
+	}
 
+	public void setOneTransparent(boolean transparent, int spot)
+	{
+		objects.get(spot).setTransparent(transparent);
+	}
+
+	public boolean isOneTransparent(int spot)
+	{
+		return objects.get(spot).isTransparent();
+	}
+
+	public void setAllTransparency(float[] transparency)
+	{
+		for(int i = 0; i < objects.size(); i++)
+		{
+			objects.get(i).setTransparency(transparency);
+		}
+	}
+
+	public void setOneTransparency(float[] transparency, int spot)
+	{
+		objects.get(spot).setTransparency(transparency);
+	}
+
+	public float[] getOneTransparency(int spot)
+	{
+		return objects.get(spot).getTransparency();
+	}
 
 	/**
 	 * Sets the specified object to be reflective (or not).

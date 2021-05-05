@@ -18,7 +18,11 @@ import java.nio.*;
 */
 public class SceneObject extends ObjObject
 {
-	private int texture;
+	private boolean transparent = false;
+	private float[] transparency = {0.3f, 0.7f};
+	private int alphaLoc, flipLoc;
+
+	private int texture, normTexture;
 	private Matrix4f invTrMat = new Matrix4f(); // inverse-transpose
 	private int windingOrder = GL_CCW;
 	private float[] bumpiness = new float[2];
@@ -38,11 +42,12 @@ public class SceneObject extends ObjObject
 	private int sLoc, mvLoc;
 	private int cubePLoc, cubeVLoc;
 	
-	public SceneObject(ImportedModel model, boolean objTiled, int texture)
+	public SceneObject(ImportedModel model, boolean objTiled, int texture, int normTexture)
 	{
 		//buffers will already be initialized by the time this is done
 		super(model, objTiled);
 		this.texture = texture;
+		this.normTexture = normTexture;
 		b.set(
 			0.5f, 0.0f, 0.0f, 0.0f,
 			0.0f, 0.5f, 0.0f, 0.0f,
@@ -50,11 +55,13 @@ public class SceneObject extends ObjObject
 			0.5f, 0.5f, 0.5f, 1.0f);
 	}
 	
-	public SceneObject(ImportedModel model, boolean objTiled, String filename, boolean textureTiled)
+	public SceneObject(ImportedModel model, boolean objTiled, String filename, String normFilename, boolean textureTiled)
 	{
 		//buffers will already be initialized by the time this is done
 		super(model, objTiled);
+		//if the textures are tiled, the normal texture should be too
 		this.texture = Utils.loadTexture(filename, textureTiled);
+		this.normTexture = Utils.loadTexture(normFilename, textureTiled);
 		b.set(
 			0.5f, 0.0f, 0.0f, 0.0f,
 			0.0f, 0.5f, 0.0f, 0.0f,
@@ -80,8 +87,16 @@ public class SceneObject extends ObjObject
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(projLoc, 1, false, pMat.get(vals));
 
-		gl.glActiveTexture(GL_TEXTURE5);
-		gl.glBindTexture(GL_TEXTURE_2D, texture);
+		if(texture != -1)
+		{
+			gl.glActiveTexture(GL_TEXTURE5);
+			gl.glBindTexture(GL_TEXTURE_2D, texture);
+		}
+		if(normTexture != -1)
+		{
+			gl.glActiveTexture(GL_TEXTURE2);
+			gl.glBindTexture(GL_TEXTURE_2D, normTexture);
+		}
 
 		displayObjBuffers();
 
@@ -106,8 +121,11 @@ public class SceneObject extends ObjObject
 		displayBuffer(0, 0, 3);
 
 
-		gl.glActiveTexture(GL_TEXTURE0);
-		gl.glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+		if(texture != -1)
+		{
+			gl.glActiveTexture(GL_TEXTURE0);
+			gl.glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+		}
 
 		gl.glEnable(GL_CULL_FACE);
 		gl.glFrontFace(windingOrder);
@@ -126,22 +144,25 @@ public class SceneObject extends ObjObject
 			mMat.rotate(rotation.x, rotation.y, rotation.z, rotation.w);
 		if(scale != null)
 			mMat.scale(scale);
-		shadowMVP1.identity();
-		shadowMVP1.mul(lightPmat);
-		shadowMVP1.mul(lightVmat);
-		shadowMVP1.mul(mMat);
-		
-		sLoc = gl.glGetUniformLocation(renderingProgram1, "shadowMVP");
-		gl.glUniformMatrix4fv(sLoc, 1, false, shadowMVP1.get(vals));
-		
-		displayBuffer(0, 0, 3);
-		
-		gl.glEnable(GL_CULL_FACE);
-		gl.glFrontFace(windingOrder);
-		gl.glEnable(GL_DEPTH_TEST);
-		gl.glDepthFunc(GL_LEQUAL);
-		
-		gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
+		if(!transparent)
+		{
+			shadowMVP1.identity();
+			shadowMVP1.mul(lightPmat);
+			shadowMVP1.mul(lightVmat);
+			shadowMVP1.mul(mMat);
+
+			sLoc = gl.glGetUniformLocation(renderingProgram1, "shadowMVP");
+			gl.glUniformMatrix4fv(sLoc, 1, false, shadowMVP1.get(vals));
+
+			displayBuffer(0, 0, 3);
+
+			gl.glEnable(GL_CULL_FACE);
+			gl.glFrontFace(windingOrder);
+			gl.glEnable(GL_DEPTH_TEST);
+			gl.glDepthFunc(GL_LEQUAL);
+
+			gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
+		}
 	}
 	
 	public void passTwo(int renderingProgram, int mvLoc, int projLoc, int nLoc, int sLoc, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat, Vector3f translation, Vector4f rotation, Vector3f scale)
@@ -180,23 +201,52 @@ public class SceneObject extends ObjObject
 		
 		displayObjBuffers();
 
-		if(reflective == 0)
+		if(texture != -1)
 		{
-			gl.glActiveTexture(GL_TEXTURE5);
-			gl.glBindTexture(GL_TEXTURE_2D, texture);
+			if (reflective == 0)
+			{
+				gl.glActiveTexture(GL_TEXTURE5);
+				gl.glBindTexture(GL_TEXTURE_2D, texture);
+			}
+			else
+			{
+				gl.glActiveTexture(GL_TEXTURE1);
+				gl.glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+			}
+		}
+		if(normTexture != -1)
+		{
+			gl.glActiveTexture(GL_TEXTURE2);
+			gl.glBindTexture(GL_TEXTURE_2D, normTexture);
+		}
+
+		gl.glEnable(GL_CULL_FACE);
+		flipLoc = gl.glGetUniformLocation(renderingProgram, "flipNormal");
+		alphaLoc = gl.glGetUniformLocation(renderingProgram, "alpha");
+		if(!transparent)
+		{
+			gl.glFrontFace(windingOrder);
+			gl.glEnable(GL_DEPTH_TEST);
+			gl.glDepthFunc(GL_LEQUAL);
+			gl.glProgramUniform1f(renderingProgram, flipLoc, 1.0f);
+			gl.glProgramUniform1f(renderingProgram, alphaLoc, 1.0f);
+			gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
 		}
 		else
 		{
-			gl.glActiveTexture(GL_TEXTURE1);
-			gl.glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+			gl.glEnable(GL_BLEND);
+			gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			gl.glBlendEquation(GL_FUNC_ADD);
+			gl.glCullFace(GL_FRONT);
+			gl.glProgramUniform1f(renderingProgram, flipLoc, -1.0f);
+			gl.glProgramUniform1f(renderingProgram, alphaLoc, transparency[0]);
+			gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
+			gl.glCullFace(GL_BACK);
+			gl.glProgramUniform1f(renderingProgram, flipLoc, 1.0f);
+			gl.glProgramUniform1f(renderingProgram, alphaLoc, transparency[1]);
+			gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
+			gl.glDisable(GL_BLEND);
 		}
-		
-		gl.glEnable(GL_CULL_FACE);
-		gl.glFrontFace(windingOrder);
-		gl.glEnable(GL_DEPTH_TEST);
-		gl.glDepthFunc(GL_LEQUAL);
-		
-		gl.glDrawArrays(GL_TRIANGLES, 0, getNumVertices());
 	}
 
 	public int getWindingOrder() { return windingOrder; }
@@ -212,4 +262,8 @@ public class SceneObject extends ObjObject
 	}
 	public int getTexture() { return texture; }
 	public void setTexture(int texture) { this.texture = texture; }
+	public boolean isTransparent() { return transparent; }
+	public void setTransparent(boolean transparent) { this.transparent = transparent; }
+	public float[] getTransparency() { return transparency; }
+	public void setTransparency(float[] transparency) { this.transparency = transparency; }
 }

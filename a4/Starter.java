@@ -31,7 +31,7 @@ public class Starter extends JFrame implements GLEventListener
 	private ArrayList<Scene> staticScenes = new ArrayList<Scene>();
 	private Scene blueguy, redguy, chromeguy, lightball;
 
-	private SceneObject skybox, refspear1, refspear2,  reflectcarrierlegs;
+	private SceneObject skybox, refspear1, refspear2,  reflectcarrierlegs, windows;
 	
 	//variables for moving scenes
 	private Vector3f blueguyMove = new Vector3f();
@@ -39,7 +39,7 @@ public class Starter extends JFrame implements GLEventListener
 	private Vector3f chromeguyMove = new Vector3f();
 	private Vector4f chromeguyRotate = new Vector4f();
 	private Vector3f cameraLoc = new Vector3f(12.37f, 5.0f, 0.2f);
-	private Vector3f lightLoc = new Vector3f(-9.153f, 192.0f, -0.75f);
+	private Vector3f lightLoc = new Vector3f(-5.82f, 192.0f, 6.561f);
 
 	private Vector3f[] points = new Vector3f[8];
 	
@@ -287,11 +287,13 @@ public class Starter extends JFrame implements GLEventListener
 
 		refspear1.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		refspear2.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+
 		reflectcarrierlegs.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		blueguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
 		redguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
 		chromeguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), chromeguyRotate.set(Camera.get().rotationVec().y - 1.5707963f, 0.0f, 1.0f, 0.0f), null);
 		lightball.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, Camera.get().c(), null, null);
+		windows.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 	}
 	
 	private void setupVBuffers()
@@ -354,19 +356,32 @@ public class Starter extends JFrame implements GLEventListener
 	{	
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 
-		skybox = new SceneObject(new ImportedModel("../skybox.obj"), false, Utils.loadCubeMap("skybox_shots"));
-		refspear1 = new SceneObject(new ImportedModel("../reflectspears/refspear1.obj"), false, skybox.getTexture());
-		refspear2 = new SceneObject(new ImportedModel("../reflectspears/refspear2.obj"), false, skybox.getTexture());
-		reflectcarrierlegs = new SceneObject(new ImportedModel("../reflectobjects/reflect_carrier_legs.obj"), false, skybox.getTexture());
+		skybox = new SceneObject(new ImportedModel("../skybox.obj"), false, Utils.loadCubeMap("skybox_shots"), -1);
+		refspear1 = new SceneObject(new ImportedModel("../reflectspears/refspear1.obj"), false, skybox.getTexture(), Utils.loadTexture("normals/floor_nmap.jpg", true));
+		refspear2 = new SceneObject(new ImportedModel("../reflectspears/refspear2.obj"), false, skybox.getTexture(), Utils.loadTexture("normals/floor_nmap.jpg", true));
+		reflectcarrierlegs = new SceneObject(new ImportedModel("../reflectobjects/reflect_carrier_legs.obj"), false, skybox.getTexture(), Utils.loadTexture("normals/polestuffnorm.png", true));
 		refspear1.setReflective(1);
 		refspear1.setBumpy(1);
 		refspear1.setBumpiness(new float[]{0.0625f, 1.38f});
+		refspear1.setTransparent(true);
+		refspear1.setTransparency(new float[]{0.8f, 0.9f});
 		refspear2.setReflective(1);
 		refspear2.setBumpy(1);
 		refspear2.setBumpiness(new float[]{0.0625f, 1.38f});
+		refspear2.setTransparent(true);
+		refspear2.setTransparency(new float[]{0.8f, 0.9f});
 		reflectcarrierlegs.setReflective(1);
+		reflectcarrierlegs.setTransparent(true);
+		reflectcarrierlegs.setTransparency(new float[]{0.5f, 0.8f});
 		//reflectcarrierlegs.setBumpy(1);
 		//reflectcarrierlegs.setBumpiness(new float[]{1.20f, 16.00f});
+
+		windows = new SceneObject(new ImportedModel("../windows/windows.obj"), false, skybox.getTexture(), Utils.loadTexture("windows/windowsnorm.png", true));
+		windows.setTransparent(true);
+		windows.setTransparency(new float[]{0.3f, 0.5f});
+		windows.setReflective(1);
+		windows.setBumpy(1);
+		windows.setBumpiness(new float[]{1.25f, 12.5f});
 
 		gl.glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		//blender by default uses CCW winding order
@@ -375,23 +390,35 @@ public class Starter extends JFrame implements GLEventListener
 		//all the .obj initializations done
 		boolean[] no = {false};
 		boolean[] leveltile = {true, false, true, false, false, false};
-		staticScenes.add(new Scene("level", "level/textures", leveltile));
-		/*
+		staticScenes.add(new Scene("level", "level/textures", "level/normals", leveltile));
+
 		//just an example of how to set a sub-scene's object to be reflective
-		staticScenes.get(0).setOneTexture(skybox.getTexture(), 4);
-		staticScenes.get(0).setReflective(1, 4);
-		*/
-		staticScenes.add(new Scene("lightball", "lightball/textures", no, view.c(), null, new Vector3f(0.25f, 0.25f, 0.25f)));
+		//staticScenes.get(0).setOneTexture(skybox.getTexture(), 4);
+		//staticScenes.get(0).setOneReflective(1, 4);
+
+		staticScenes.add(new Scene("lightball", "lightball/textures", "normals", no, view.c(), null, new Vector3f(0.25f, 0.25f, 0.25f)));
 		staticScenes.get(1).setVisible(true);
-		staticScenes.add(new Scene("signscene", "signscene/textures", no, new Vector3f(-9.205f, -0.76875f,  2.731f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.35f, 0.35f, 0.35f)));
-		staticScenes.add(new Scene("tablescene", "tablescene/textures", no, new Vector3f(-10.94f, -0.38875f, -0.2291f), null, new Vector3f(0.5f, 0.5f, 0.5f)));
+		staticScenes.add(new Scene("signscene", "signscene/textures", "normals", no, new Vector3f(-9.205f, -0.76875f,  2.731f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.35f, 0.35f, 0.35f)));
+		staticScenes.add(new Scene("tablescene", "tablescene/textures", "normals", no, new Vector3f(-10.94f, -0.38875f, -0.2291f), null, new Vector3f(0.5f, 0.5f, 0.5f)));
+
+		/*
+		//unsure why, but if I make objects transparent, any objects that are behind them are not rendered
+		// Only happens if they are rendered with pass2() before another object
+		// they are being occluded?
+		float[] sceneTrans = { 1.0f, 1.0f };
+		for(int i = 0; i < staticScenes.size(); i++)
+		{
+			staticScenes.get(i).setAllTransparent(true);
+			staticScenes.get(i).setAllTransparency(sceneTrans);
+		}
+		 */
 
 		int index = 7;
 		staticScenes.get(3).setOneReflective(1, index);
 		staticScenes.get(3).setOneBumpy(1, index);
 		staticScenes.get(3).setOneBumpiness(new float[]{15.0f, 13.8f}, index);
 		staticScenes.get(3).setOneTexture(skybox.getTexture(), index);
-		staticScenes.add(new Scene("reflectobjects/refmound", "reflectobjects/refmound/textures", no, null, null, null));
+		staticScenes.add(new Scene("reflectobjects/refmound", "reflectobjects/refmound/textures", "normals", no, null, null, null));
 		staticScenes.get(4).setOneReflective(1, 0);
 		staticScenes.get(4).setOneBumpy(1, 0);
 		staticScenes.get(4).setOneBumpiness(new float[]{0.25f, 6.9f}, 0);
@@ -403,19 +430,21 @@ public class Starter extends JFrame implements GLEventListener
 			points[i] = new Vector3f();
 		}
 
-		blueguy = new Scene("blueguy", "blueguy/textures", no, new Vector3f(-8.767f,  0.06647f, -3.146f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.75f, 0.75f, 0.75f));
+		blueguy = new Scene("blueguy", "blueguy/textures", "normals", no, new Vector3f(-8.767f,  0.06647f, -3.146f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.75f, 0.75f, 0.75f));
 		blueguy.setOneBumpy(1, 0);
 		blueguy.setOneBumpiness(new float[]{0.1875f, 2.5f}, 0);
-		redguy = new Scene("redguy", "redguy/textures", no, new Vector3f(-11.12f,  0.1142f,  1.186f), new Vector4f(0.7853981f, 0.0f, 1.0f, 0.0f), new Vector3f(0.2f, 0.2f, 0.2f));
+		redguy = new Scene("redguy", "redguy/textures", "normals", no, new Vector3f(-11.12f,  0.1142f,  1.186f), new Vector4f(0.7853981f, 0.0f, 1.0f, 0.0f), new Vector3f(0.2f, 0.2f, 0.2f));
 		redguy.setOneBumpy(1, 2);
 		redguy.setOneBumpiness(new float[]{0.375f, 1.25f}, 2);
-		chromeguy = new Scene("chromeguy", "chromeguy/textures", no, new Vector3f(0.0f, 7.3f, 0.0f), null, null);
+		chromeguy = new Scene("chromeguy", "chromeguy/textures", "normals", no, new Vector3f(0.0f, 7.3f, 0.0f), null, null);
 		//making the body of this chromeguy chrome
 		chromeguy.setOneReflective(1, 0);
 		chromeguy.setOneBumpy(1, 0);
 		chromeguy.setOneBumpiness(new float[]{0.075f, 1.25f}, 0);
 		chromeguy.setOneTexture(skybox.getTexture(), 0);
-		lightball = new Scene("lightball", "lightball/textures", no, Camera.get().c(), null, new Vector3f(0.5f, 0.5f, 0.5f));
+		chromeguy.setOneTransparent(true, 0);
+		chromeguy.setOneTransparency(new float[]{0.15f, 0.85f}, 0);
+		lightball = new Scene("lightball", "lightball/textures", "normals", no, Camera.get().c(), null, new Vector3f(0.5f, 0.5f, 0.5f));
 	}
 	
 	public void input()
