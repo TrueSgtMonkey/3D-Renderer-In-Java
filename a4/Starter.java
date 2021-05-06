@@ -117,7 +117,8 @@ public class Starter extends JFrame implements GLEventListener
 	private double elapsedTime;
 	
 	public Starter()
-	{	setTitle("Assignment #4");
+	{
+		setTitle("Assignment #4");
 		setSize(1280, 720);
 		myCanvas = new GLCanvas();
 		myCanvas.addGLEventListener(this);
@@ -140,6 +141,32 @@ public class Starter extends JFrame implements GLEventListener
 		Animator animator = new Animator(myCanvas);
 		animator.start();
 		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+	}
+
+	public void init(GLAutoDrawable drawable)
+	{
+		renderingProgram1 = Utils.createShaderProgram("a4/vert1shader.glsl", "a4/frag1shader.glsl");
+		renderingProgram2 = Utils.createShaderProgram("a4/vert2shader.glsl", "a4/frag2shader.glsl");
+		renderingProgramCubeMap = Utils.createShaderProgram("a4/vertCShader.glsl", "a4/fragCShader.glsl");
+
+		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
+		pMat.identity().setPerspective((float) Math.toRadians(fov), aspect, 0.1f, 1000.0f);
+		//pMat.identity().setOrtho((float)-myCanvas.getWidth() * 0.125f, (float)myCanvas.getWidth() * 0.125f, (float)-myCanvas.getHeight() * 0.125f, (float)myCanvas.getHeight() * 0.125f, 1.0f, 100.0f);
+
+		lightLoc.mul(camScale);
+		view.setAttrib(lightLoc.x, lightLoc.y, lightLoc.z, 9.0f, 1.0f);
+		view.vertRot(-1.5707963267948f);
+
+		setupVertices();
+		setupShadowBuffers();
+
+		b.set(
+				0.5f, 0.0f, 0.0f, 0.0f,
+				0.0f, 0.5f, 0.0f, 0.0f,
+				0.0f, 0.0f, 0.5f, 0.0f,
+				0.5f, 0.5f, 0.5f, 1.0f);
+
+		startTime = System.currentTimeMillis();
 	}
 
 	public void display(GLAutoDrawable drawable)
@@ -305,31 +332,7 @@ public class Starter extends JFrame implements GLEventListener
 		}
 	}
 
-	public void init(GLAutoDrawable drawable)
-	{	GL4 gl = (GL4) GLContext.getCurrentGL();
-		renderingProgram1 = Utils.createShaderProgram("a4/vert1shader.glsl", "a4/frag1shader.glsl");
-		renderingProgram2 = Utils.createShaderProgram("a4/vert2shader.glsl", "a4/frag2shader.glsl");
-		renderingProgramCubeMap = Utils.createShaderProgram("a4/vertCShader.glsl", "a4/fragCShader.glsl");
 
-		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
-		pMat.identity().setPerspective((float) Math.toRadians(fov), aspect, 0.1f, 1000.0f);
-		//pMat.identity().setOrtho((float)-myCanvas.getWidth() * 0.125f, (float)myCanvas.getWidth() * 0.125f, (float)-myCanvas.getHeight() * 0.125f, (float)myCanvas.getHeight() * 0.125f, 1.0f, 100.0f);
-
-		lightLoc.mul(camScale);
-		view.setAttrib(lightLoc.x, lightLoc.y, lightLoc.z, 9.0f, 1.0f);
-		view.vertRot(-1.5707963267948f);
-
-		setupVertices();
-		setupShadowBuffers();
-				
-		b.set(
-			0.5f, 0.0f, 0.0f, 0.0f,
-			0.0f, 0.5f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.5f, 0.0f,
-			0.5f, 0.5f, 0.5f, 1.0f);
-		
-		startTime = System.currentTimeMillis();
-	}
 	
 	private void setupShadowBuffers()
 	{	GL4 gl = (GL4) GLContext.getCurrentGL();
@@ -363,13 +366,13 @@ public class Starter extends JFrame implements GLEventListener
 		refspear1.setReflective(1);
 		refspear1.setBumpy(1);
 		refspear1.setBumpiness(new float[]{0.0625f, 1.38f});
-		refspear1.setTransparent(true);
-		refspear1.setTransparency(new float[]{0.8f, 0.9f});
+//		refspear1.setTransparent(true);
+//		refspear1.setTransparency(new float[]{0.8f, 0.9f});
 		refspear2.setReflective(1);
 		refspear2.setBumpy(1);
 		refspear2.setBumpiness(new float[]{0.0625f, 1.38f});
-		refspear2.setTransparent(true);
-		refspear2.setTransparency(new float[]{0.8f, 0.9f});
+//		refspear2.setTransparent(true);
+//		refspear2.setTransparency(new float[]{0.8f, 0.9f});
 		reflectcarrierlegs.setReflective(1);
 		reflectcarrierlegs.setTransparent(true);
 		reflectcarrierlegs.setTransparency(new float[]{0.5f, 0.8f});

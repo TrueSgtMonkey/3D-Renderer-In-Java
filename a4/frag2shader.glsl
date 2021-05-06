@@ -177,7 +177,7 @@ void main(void)
 		}
 
 		float shadowFactor = basicPCF(1.25);
-
+		//float shadowFactor = shadowCalc();
 		//float notInShadow = shadowCalc();
 
 		vec4 color = vec4((ambient + shadowFactor * light.intensity * lightColor), alpha);// * attenuation
