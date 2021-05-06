@@ -14,10 +14,13 @@ import com.jogamp.common.nio.Buffers;
 import org.joml.*;
 
 public class Starter extends JFrame implements GLEventListener
-{	
+{
+	private Random rand = new Random();
+	private float randy, ogLen;
+	private int randyLoc, ogLenLoc;
 	private int adder = 0;
 	private GLCanvas myCanvas;
-	private int renderingProgram1, renderingProgram2;
+	private int renderingProgram1, renderingProgram2, hairProgram;
 
 	private float fov = 70.0f;
 
@@ -25,13 +28,11 @@ public class Starter extends JFrame implements GLEventListener
 
 	private ViewMat view = new ViewMat();
 
-	private float sceneScale = 0.25f;
-
 	// model stuff
 	private ArrayList<Scene> staticScenes = new ArrayList<Scene>();
 	private Scene blueguy, redguy, chromeguy, lightball;
 
-	private SceneObject skybox, refspear1, refspear2,  reflectcarrierlegs, windows;
+	private SceneObject skybox, refspear1, refspear2,  reflectcarrierlegs, windows, grassGeo, dirtGeo;
 	
 	//variables for moving scenes
 	private Vector3f blueguyMove = new Vector3f();
@@ -101,7 +102,7 @@ public class Starter extends JFrame implements GLEventListener
 	private Matrix4f mMat = new Matrix4f();  // model matrix
 	private Matrix4f mvMat = new Matrix4f(); // model-view matrix
 	private Matrix4f invTrMat = new Matrix4f(); // inverse-transpose
-	private int mvLoc, projLoc, nLoc, sLoc, timeLoc;
+	private int mvLoc, projLoc, nLoc, sLoc, timeLoc, hairTimeLoc;
 	private int globalAmbLoc, ambLoc, diffLoc, specLoc, posLoc, mambLoc, mdiffLoc, mspecLoc, mshiLoc, distLoc;
 	private int screenXLoc, screenYLoc, skyBoxLoc, intensityLoc;
 	private float aspect, camScale;
@@ -148,6 +149,7 @@ public class Starter extends JFrame implements GLEventListener
 		renderingProgram1 = Utils.createShaderProgram("a4/vert1shader.glsl", "a4/frag1shader.glsl");
 		renderingProgram2 = Utils.createShaderProgram("a4/vert2shader.glsl", "a4/frag2shader.glsl");
 		renderingProgramCubeMap = Utils.createShaderProgram("a4/vertCShader.glsl", "a4/fragCShader.glsl");
+		hairProgram = Utils.createShaderProgram("a4/vertHairShader.glsl", "a4/geoHairShader.glsl", "a4/fragHairShader.glsl");
 
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
 		pMat.identity().setPerspective((float) Math.toRadians(fov), aspect, 0.1f, 1000.0f);
@@ -170,7 +172,8 @@ public class Starter extends JFrame implements GLEventListener
 	}
 
 	public void display(GLAutoDrawable drawable)
-	{	
+	{
+		randy = rand.nextFloat() * 2.0f;
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glClearColor(fogColor[0], fogColor[1], fogColor[2], fogColor[3]);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
@@ -234,6 +237,8 @@ public class Starter extends JFrame implements GLEventListener
 		}
 
 		refspear1.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
+		//grassGeo.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
+		//dirtGeo.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
 		refspear2.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
 		reflectcarrierlegs.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
 		blueguy.passOne(renderingProgram1, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
@@ -321,6 +326,54 @@ public class Starter extends JFrame implements GLEventListener
 		chromeguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), chromeguyRotate.set(Camera.get().rotationVec().y - 1.5707963f, 0.0f, 1.0f, 0.0f), null);
 		lightball.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, Camera.get().c(), null, null);
 		windows.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+
+		gl.glUseProgram(hairProgram);
+
+		/*
+		//done uniform vec4 globalAmbient;
+		//done uniform PositionalLight light;
+		//done uniform Material material;
+		//done uniform mat4 mv_matrix;
+		uniform mat4 shadowMVP;
+		//done uniform mat4 proj_matrix;
+		//done uniform mat4 norm_matrix;
+		uniform float flipNormal;
+		*/
+
+		thisAmb = lmatAmb;
+		thisDif = lmatDif;
+		thisSpe = lmatSpe;
+		thisShi = lmatShi;
+
+		mvLoc = gl.glGetUniformLocation(hairProgram, "mv_matrix");
+		projLoc = gl.glGetUniformLocation(hairProgram, "proj_matrix");
+		nLoc = gl.glGetUniformLocation(hairProgram, "norm_matrix");
+		sLoc = gl.glGetUniformLocation(hairProgram, "shadowMVP");
+		fogLoc = gl.glGetUniformLocation(hairProgram, "fog.enabled");
+		fogColorLoc = gl.glGetUniformLocation(hairProgram, "fog.color");
+		fogStartLoc = gl.glGetUniformLocation(hairProgram, "fog.start");
+		fogEndLoc = gl.glGetUniformLocation(hairProgram, "fog.end");
+		hairTimeLoc = gl.glGetUniformLocation(hairProgram, "time");
+		randyLoc = gl.glGetUniformLocation(hairProgram, "randy");
+		ogLenLoc = gl.glGetUniformLocation(hairProgram, "ogLen");
+
+		gl.glProgramUniform1f(hairProgram, hairTimeLoc, add * (float)tf);
+		gl.glProgramUniform1i(hairProgram, fogLoc, fog);
+		gl.glProgramUniform1f(hairProgram, randyLoc, randy);
+		gl.glProgramUniform1f(hairProgram, ogLenLoc, 0.5f);
+		gl.glProgramUniform1f(hairProgram, fogStartLoc, fogStart);
+		gl.glProgramUniform1f(hairProgram, fogEndLoc, fogEnd);
+		gl.glProgramUniform4fv(hairProgram, fogColorLoc, 1, fogColor, 0);
+
+		installLights(hairProgram, vMat);
+
+		grassGeo.passTwo(hairProgram, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+
+		installLights(hairProgram, vMat);
+		randy = rand.nextFloat() * 4.0f;
+		gl.glProgramUniform1f(hairProgram, randyLoc, randy);
+		gl.glProgramUniform1f(hairProgram, ogLenLoc, 1.25f);
+		dirtGeo.passTwo(hairProgram, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 	}
 	
 	private void setupVBuffers()
@@ -332,8 +385,6 @@ public class Starter extends JFrame implements GLEventListener
 		}
 	}
 
-
-	
 	private void setupShadowBuffers()
 	{	GL4 gl = (GL4) GLContext.getCurrentGL();
 		scSizeX = myCanvas.getWidth();
@@ -385,6 +436,9 @@ public class Starter extends JFrame implements GLEventListener
 		windows.setReflective(1);
 		windows.setBumpy(1);
 		windows.setBumpiness(new float[]{1.25f, 12.5f});
+
+		grassGeo = new SceneObject(new ImportedModel("../grassgeo/grassgeo.obj"), true, Utils.loadTexture("level/textures/grass.png", true), -1);
+		dirtGeo = new SceneObject(new ImportedModel("../grassgeo/dirtgeo.obj"), true, Utils.loadTexture("level/textures/dirtstuff.png", true), -1);
 
 		gl.glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		//blender by default uses CCW winding order
@@ -575,8 +629,7 @@ public class Starter extends JFrame implements GLEventListener
 	public void dispose(GLAutoDrawable drawable) {}
 
 	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height)
-	{	GL4 gl = (GL4) GLContext.getCurrentGL();
-
+	{
 		aspect = (float) myCanvas.getWidth() / (float) myCanvas.getHeight();
 		pMat.identity().setPerspective((float) Math.toRadians(fov), aspect, 0.1f, 1000.0f);
 		//pMat.identity().setOrtho((float)-myCanvas.getWidth(), (float)myCanvas.getWidth(), (float)-myCanvas.getHeight(), (float)myCanvas.getHeight(), 1.0f, 1000.0f);
