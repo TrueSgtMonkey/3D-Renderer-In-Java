@@ -16,8 +16,9 @@ import org.joml.*;
 public class Starter extends JFrame implements GLEventListener
 {
 	private Random rand = new Random();
-	private float randy, ogLen;
-	private int randyLoc, ogLenLoc;
+	private float randy, randmuch;
+	private float[] speed = new float[3];
+	private int randyLoc, ogLenLoc, speedLoc;
 	private int adder = 0;
 	private GLCanvas myCanvas;
 	private int renderingProgram1, renderingProgram2, hairProgram;
@@ -31,6 +32,8 @@ public class Starter extends JFrame implements GLEventListener
 	// model stuff
 	private ArrayList<Scene> staticScenes = new ArrayList<Scene>();
 	private Scene blueguy, redguy, chromeguy, lightball;
+	private NoiseObject noisy, noiseguy;
+	private Scene noiseguyeye;
 
 	private SceneObject skybox, refspear1, refspear2,  reflectcarrierlegs, windows, grassGeo, dirtGeo;
 	
@@ -91,7 +94,7 @@ public class Starter extends JFrame implements GLEventListener
 	//fog stuff
 	private int fogLoc, fogColorLoc, fogStartLoc, fogEndLoc, fog = 1;
 	private float[] fogColor = {0.7f, 0.8f, 0.9f, 1.0f};
-	private float fogStart = 20.0f, fogEnd = 80.0f;
+	private float fogStart = 10.0f, fogEnd = 80.0f;
 
 	// allocate variables for display() function
 	private FloatBuffer vals = Buffers.newDirectFloatBuffer(16);
@@ -173,38 +176,34 @@ public class Starter extends JFrame implements GLEventListener
 
 	public void display(GLAutoDrawable drawable)
 	{
-		randy = rand.nextFloat() * 2.0f;
+		randy += rand.nextFloat() * 0.0016f;
+		randmuch = rand.nextFloat() * 0.1f;
+
+		for(int i = 0; i < 3; i++)
+		{
+			speed[i] = rand.nextFloat() * randmuch;
+		}
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 		gl.glClearColor(fogColor[0], fogColor[1], fogColor[2], fogColor[3]);
 		gl.glClear(GL_COLOR_BUFFER_BIT);
 		gl.glClear(GL_DEPTH_BUFFER_BIT);
 		
-		currentLightPos.set(view.c());
+		//currentLightPos.set(view.c());
+		currentLightPos.set(Camera.get().c().x, view.c().y, Camera.get().c().z);
 		
 		elapsedTime = System.currentTimeMillis() - startTime;
 		tf = elapsedTime / 1000.0;
 		add += (float)tf;
 		
 		//lightVmat.set(view.viewMat((float)tf));
-		lightVmat.identity().setLookAt(currentLightPos, origin, up);
+		lightVmat.identity().setLookAt(view.c(), view.n(), view.v());
 		//lightVmat.identity().setLookAt(currentLightPos.mul(1.5f), view.c(), up);
-		//currentLightPos.set(view.c());
-		//lightVmat.identity().setLookAt(currentLightPos, origin, up);	// vector from light to origin
-		//System.out.println(lightVmat.toString());
-		lightPmat.identity().setPerspective((float) Math.toRadians(42.0f), 1.0f, 0.1f, 1000.0f);
-		/*
-		for(int i = 0; i < points.length; i++)
-		{
-			vMat.frustumCorner(i, points[i]);
-			System.out.println(points[i].toString());
+		lightPmat.identity().setPerspective((float) Math.toRadians(46.5f), 1.0f, 0.1f, 1000.0f);
 
-		}
-		*/
-
-		//lightPmat.identity().setOrtho(-96.0f, 96.0f, -96.0f, 96.0f, 1.0f, 200.0f);
+		//lightPmat.identity().setOrtho(-64.0f, 64.0f, -64.0f, 64.0f, 1.0f, 200.0f);
 
 		gl.glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer[0]);
-		gl.glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowTex[0], 0);
+		gl.glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTex[0], 0);
 	
 		gl.glDrawBuffer(GL_NONE);
 		gl.glEnable(GL_DEPTH_TEST);
@@ -237,6 +236,9 @@ public class Starter extends JFrame implements GLEventListener
 		}
 
 		refspear1.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
+		noisy.passOne(renderingProgram1, lightPmat, lightVmat, noisy.getTranslation(), null, null);
+		noiseguy.passOne(renderingProgram1, lightPmat, lightVmat, noiseguy.setTranslation(noiseguy.getTranslation().add(0.0f, (float)Math.sin(add) * 0.01f, 0.0f)), noiseguy.setRotation(noiseguy.getRotation().set((float)Math.cos(add + rand.nextFloat() * tf), 0.0f, 1.0f, 0.0f)), null);
+		noiseguyeye.passOne(renderingProgram1, lightPmat, lightVmat, noiseguy.getTranslation(), noiseguy.getRotation(), null);
 		//grassGeo.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
 		//dirtGeo.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
 		refspear2.passOne(renderingProgram1, lightPmat, lightVmat, null, null, null);
@@ -283,11 +285,6 @@ public class Starter extends JFrame implements GLEventListener
 
 		gl.glProgramUniform1i(renderingProgram2, skyBoxLoc, 0);
 
-		/*
-		currentLightPos.set(lightLoc);
-		installLights(renderingProgram2, vMat);
-		*/
-
 		setupVBuffers();
 		
 		thisAmb = lmatAmb;
@@ -303,9 +300,7 @@ public class Starter extends JFrame implements GLEventListener
 		{
 			// currentLightPos.set(lightLoc);
 			// installLights(renderingProgram2, vMat);
-			
-			//gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[2]);
-			//staticScenes.get(i).vBuffers();
+
 			if(staticScenes.get(i).isVisible())
 				staticScenes.get(i).passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat);
 		}
@@ -319,6 +314,8 @@ public class Starter extends JFrame implements GLEventListener
 
 		refspear1.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		refspear2.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+		noiseguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, noiseguy.getTranslation(), noiseguy.getRotation(), null);
+		noiseguyeye.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, noiseguy.getTranslation(), noiseguy.getRotation(), null);
 
 		reflectcarrierlegs.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		blueguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
@@ -326,19 +323,9 @@ public class Starter extends JFrame implements GLEventListener
 		chromeguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), chromeguyRotate.set(Camera.get().rotationVec().y - 1.5707963f, 0.0f, 1.0f, 0.0f), null);
 		lightball.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, Camera.get().c(), null, null);
 		windows.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+		noisy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, noisy.getTranslation(), null, null);
 
 		gl.glUseProgram(hairProgram);
-
-		/*
-		//done uniform vec4 globalAmbient;
-		//done uniform PositionalLight light;
-		//done uniform Material material;
-		//done uniform mat4 mv_matrix;
-		uniform mat4 shadowMVP;
-		//done uniform mat4 proj_matrix;
-		//done uniform mat4 norm_matrix;
-		uniform float flipNormal;
-		*/
 
 		thisAmb = lmatAmb;
 		thisDif = lmatDif;
@@ -356,11 +343,16 @@ public class Starter extends JFrame implements GLEventListener
 		hairTimeLoc = gl.glGetUniformLocation(hairProgram, "time");
 		randyLoc = gl.glGetUniformLocation(hairProgram, "randy");
 		ogLenLoc = gl.glGetUniformLocation(hairProgram, "ogLen");
+		for(int i = 0; i < 3; i++)
+		{
+			speedLoc = gl.glGetUniformLocation(hairProgram, "speed[" + i + "]");
+			gl.glProgramUniform1f(hairProgram, speedLoc, speed[i]);
+		}
 
 		gl.glProgramUniform1f(hairProgram, hairTimeLoc, add * (float)tf);
 		gl.glProgramUniform1i(hairProgram, fogLoc, fog);
 		gl.glProgramUniform1f(hairProgram, randyLoc, randy);
-		gl.glProgramUniform1f(hairProgram, ogLenLoc, 0.5f);
+		gl.glProgramUniform1f(hairProgram, ogLenLoc, 1.25f);
 		gl.glProgramUniform1f(hairProgram, fogStartLoc, fogStart);
 		gl.glProgramUniform1f(hairProgram, fogEndLoc, fogEnd);
 		gl.glProgramUniform4fv(hairProgram, fogColorLoc, 1, fogColor, 0);
@@ -372,7 +364,7 @@ public class Starter extends JFrame implements GLEventListener
 		installLights(hairProgram, vMat);
 		randy = rand.nextFloat() * 4.0f;
 		gl.glProgramUniform1f(hairProgram, randyLoc, randy);
-		gl.glProgramUniform1f(hairProgram, ogLenLoc, 1.25f);
+		gl.glProgramUniform1f(hairProgram, ogLenLoc, 0.5f);
 		dirtGeo.passTwo(hairProgram, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 	}
 	
@@ -411,24 +403,36 @@ public class Starter extends JFrame implements GLEventListener
 		GL4 gl = (GL4) GLContext.getCurrentGL();
 
 		skybox = new SceneObject(new ImportedModel("../skybox.obj"), false, Utils.loadCubeMap("skybox_shots"), -1);
-		refspear1 = new SceneObject(new ImportedModel("../reflectspears/refspear1.obj"), false, skybox.getTexture(), Utils.loadTexture("normals/floor_nmap.jpg", true));
-		refspear2 = new SceneObject(new ImportedModel("../reflectspears/refspear2.obj"), false, skybox.getTexture(), Utils.loadTexture("normals/floor_nmap.jpg", true));
+		refspear1 = new SceneObject(new ImportedModel("../reflectspears/refspear1.obj"), false, skybox.getTexture(), Utils.loadTexture("normals/polestuffnorm.png", true));
+		refspear2 = new SceneObject(new ImportedModel("../reflectspears/refspear2.obj"), false, skybox.getTexture(), Utils.loadTexture("normals/polestuffnorm.png", true));
 		reflectcarrierlegs = new SceneObject(new ImportedModel("../reflectobjects/reflect_carrier_legs.obj"), false, skybox.getTexture(), Utils.loadTexture("normals/polestuffnorm.png", true));
+
 		refspear1.setReflective(1);
 		refspear1.setBumpy(1);
+		refspear1.setBottomGear(1);
 		refspear1.setBumpiness(new float[]{0.0625f, 1.38f});
-//		refspear1.setTransparent(true);
-//		refspear1.setTransparency(new float[]{0.8f, 0.9f});
+
 		refspear2.setReflective(1);
 		refspear2.setBumpy(1);
+		refspear2.setBottomGear(1);
 		refspear2.setBumpiness(new float[]{0.0625f, 1.38f});
-//		refspear2.setTransparent(true);
-//		refspear2.setTransparency(new float[]{0.8f, 0.9f});
+
 		reflectcarrierlegs.setReflective(1);
 		reflectcarrierlegs.setTransparent(true);
 		reflectcarrierlegs.setTransparency(new float[]{0.5f, 0.8f});
-		//reflectcarrierlegs.setBumpy(1);
-		//reflectcarrierlegs.setBumpiness(new float[]{1.20f, 16.00f});
+
+		noisy = new NoiseObject(new ImportedModel("../noiseObjects/noise_beam.obj"), 128, 128, 128, 8);
+		noisy.setScale(new Vector3f(16.0f, 16.0f, 16.0f));
+		noisy.setTransparent(true);
+		noisy.setTransparency(new float[]{0.25f, 0.85f});
+		noiseguy = new NoiseObject(new ImportedModel("../noiseguy/noiseguy.obj"), 64, 64, 64, 2, Utils.loadTexture("normals/bumpy.png", true));
+		noiseguy.setTranslation(new Vector3f(-6.301f, 1.94f, -22.17f));
+		noiseguy.setRotation(new Vector4f());
+		noiseguy.setBumpy(1);
+		noiseguy.setBumpiness(new float[]{1.25f, 20.0f});
+
+		noiseguyeye = new Scene("noiseguy/eyes", "noiseguy/textures", "noiseguy/normals", new boolean[]{false});
+		//noisy.setReflective(1);
 
 		windows = new SceneObject(new ImportedModel("../windows/windows.obj"), false, skybox.getTexture(), Utils.loadTexture("windows/windowsnorm.png", true));
 		windows.setTransparent(true);
@@ -436,6 +440,7 @@ public class Starter extends JFrame implements GLEventListener
 		windows.setReflective(1);
 		windows.setBumpy(1);
 		windows.setBumpiness(new float[]{1.25f, 12.5f});
+
 
 		grassGeo = new SceneObject(new ImportedModel("../grassgeo/grassgeo.obj"), true, Utils.loadTexture("level/textures/grass.png", true), -1);
 		dirtGeo = new SceneObject(new ImportedModel("../grassgeo/dirtgeo.obj"), true, Utils.loadTexture("level/textures/dirtstuff.png", true), -1);
@@ -457,7 +462,6 @@ public class Starter extends JFrame implements GLEventListener
 		staticScenes.get(1).setVisible(true);
 		staticScenes.add(new Scene("signscene", "signscene/textures", "normals", no, new Vector3f(-9.205f, -0.76875f,  2.731f), new Vector4f(2.3561944f, 0.0f, 1.0f, 0.0f), new Vector3f(0.35f, 0.35f, 0.35f)));
 		staticScenes.add(new Scene("tablescene", "tablescene/textures", "normals", no, new Vector3f(-10.94f, -0.38875f, -0.2291f), null, new Vector3f(0.5f, 0.5f, 0.5f)));
-
 		/*
 		//unsure why, but if I make objects transparent, any objects that are behind them are not rendered
 		// Only happens if they are rendered with pass2() before another object
@@ -481,6 +485,13 @@ public class Starter extends JFrame implements GLEventListener
 		staticScenes.get(4).setOneBumpiness(new float[]{0.25f, 6.9f}, 0);
 		staticScenes.get(4).setOneTexture(skybox.getTexture(), 0);
 
+		boolean[] buildingtile = {false, false, false, false, false};
+		staticScenes.add(new Scene("level/building", "level/building/textures", "level/building/normals", buildingtile, null, null, null));
+		staticScenes.get(5).setOneTexture(skybox.getTexture(), 4);
+		staticScenes.get(5).setOneReflective(1, 4);
+		staticScenes.get(5).setOneBumpy(1, 4);
+		staticScenes.get(5).setOneBumpiness(new float[]{0.125f, 1.25f}, 4);
+		staticScenes.get(5).setOneBottomGear(1, 4);
 
 		for(int i = 0; i < points.length; i++)
 		{

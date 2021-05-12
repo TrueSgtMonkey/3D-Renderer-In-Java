@@ -24,7 +24,7 @@ public class Scene
 	private Vector3f translation, scale;
 	private Vector4f rotation;
 	private boolean color;	//will use if no textures found
-	
+
 	/**
 		Specify an object directory filled with OBJs to group together into a 
 		"Scene" and specify a texture directory filled with PNGs to map those 
@@ -181,7 +181,7 @@ public class Scene
 	}
 	
 	
-	//for movable objects
+	//for static
 	public void passTwo(int renderingProgram, int mvLoc, int projLoc, int nLoc, int sLoc, Matrix4f pMat, Matrix4f vMat, Matrix4f lightPmat, Matrix4f lightVmat)
 	{
 		for(int i = 0; i < objects.size(); i++)
@@ -331,5 +331,18 @@ public class Scene
 	{
 		objects.get(spot).setTexture(texture);
 		textures.set(spot, texture);
+	}
+
+	public void setAllBottomGear(int bottomGear)
+	{
+		for(int i = 0; i < objects.size(); i++)
+		{
+			objects.get(i).setBottomGear(bottomGear);
+		}
+	}
+
+	public void setOneBottomGear(int bottomGear, int spot)
+	{
+		objects.get(spot).setBottomGear(bottomGear);
 	}
 }

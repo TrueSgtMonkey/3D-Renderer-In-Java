@@ -36,6 +36,7 @@ uniform int skybox;
 uniform int reflective;
 layout (binding=0) uniform sampler2DShadow shadowTex;
 layout (binding=1) uniform samplerCube tex_map;
+layout (binding=3) uniform sampler3D nose;
 
 void main(void)
 {	//output the vertex position to the rasterizer for interpolation

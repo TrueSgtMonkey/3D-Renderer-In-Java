@@ -22,6 +22,8 @@ public class SceneObject extends ObjObject
 	private float[] transparency = {0.3f, 0.7f};
 	private int alphaLoc, flipLoc;
 
+	private int bottomGear = 0;
+
 	private int texture, normTexture;
 	private Matrix4f invTrMat = new Matrix4f(); // inverse-transpose
 	private int windingOrder = GL_CCW;
@@ -38,6 +40,7 @@ public class SceneObject extends ObjObject
 
 	private int reflective = 0, reflectiveLoc;
 	private int bumpy = 0, bumpyLoc, bumpinessLoc;
+	private int threeDLoc;
 	
 	private int sLoc, mvLoc;
 	private int cubePLoc, cubeVLoc;
@@ -190,6 +193,7 @@ public class SceneObject extends ObjObject
 		reflectiveLoc = gl.glGetUniformLocation(renderingProgram, "reflective");
 		bumpyLoc = gl.glGetUniformLocation(renderingProgram, "bumpy");
 		bumpinessLoc = gl.glGetUniformLocation(renderingProgram, "bumpiness");
+		threeDLoc = gl.glGetUniformLocation(renderingProgram, "threeD");
 		
 		gl.glUniformMatrix4fv(mvLoc, 1, false, mvMat.get(vals));
 		gl.glUniformMatrix4fv(projLoc, 1, false, pMat.get(vals));
@@ -197,6 +201,8 @@ public class SceneObject extends ObjObject
 		gl.glUniformMatrix4fv(sLoc, 1, false, shadowMVP2.get(vals));
 		gl.glProgramUniform2fv(renderingProgram, bumpinessLoc, 1, bumpiness, 0);
 		gl.glUniform1i(reflectiveLoc, reflective);
+		//gl.glUniform1i(threeDLoc, bottomGear);
+		gl.glUniform1i(threeDLoc, bottomGear);
 		gl.glUniform1i(bumpyLoc, bumpy);
 		
 		displayObjBuffers();
@@ -205,8 +211,16 @@ public class SceneObject extends ObjObject
 		{
 			if (reflective == 0)
 			{
-				gl.glActiveTexture(GL_TEXTURE5);
-				gl.glBindTexture(GL_TEXTURE_2D, texture);
+				if(bottomGear == 0)
+				{
+					gl.glActiveTexture(GL_TEXTURE5);
+					gl.glBindTexture(GL_TEXTURE_2D, texture);
+				}
+				else
+				{
+					gl.glActiveTexture(GL_TEXTURE3);
+					gl.glBindTexture(GL_TEXTURE_3D, texture);
+				}
 			}
 			else
 			{
@@ -260,10 +274,15 @@ public class SceneObject extends ObjObject
 		this.bumpiness[0] = bumpiness[0];
 		this.bumpiness[1] = bumpiness[1];
 	}
+	public void setBottomGear(int bottomGear) { this.bottomGear = bottomGear; }
+	public int getBottomGear() { return bottomGear; }
 	public int getTexture() { return texture; }
 	public void setTexture(int texture) { this.texture = texture; }
+	public int getNormTexture() { return normTexture; }
+	public void setNormTexture(int normTexture) { this.normTexture = normTexture; }
 	public boolean isTransparent() { return transparent; }
 	public void setTransparent(boolean transparent) { this.transparent = transparent; }
 	public float[] getTransparency() { return transparency; }
 	public void setTransparency(float[] transparency) { this.transparency = transparency; }
+
 }

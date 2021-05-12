@@ -151,10 +151,12 @@ public class HandMadeObject
 			tanCoord[i * 3 + 2] = tans.z;
 		}
 		if(tiled)
-			for(int i = 0; i < textCoord.length; i++)
+		{
+			for (int i = 0; i < textCoord.length; i++)
 			{
 				textCoord[i] *= maxVal;
 			}
+		}
 		setupVBO();
 		initBuffer(0, vertCoord);
 		initBuffer(1, textCoord);

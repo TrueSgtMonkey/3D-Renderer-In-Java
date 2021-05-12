@@ -42,6 +42,7 @@ uniform Fog fog;
 uniform vec2 bumpiness;
 uniform mat4 mv_matrix; 
 uniform mat4 proj_matrix;
+uniform float time;
 uniform mat4 norm_matrix;
 uniform mat4 shadowMVP;
 uniform float flipNormal;
@@ -49,9 +50,11 @@ uniform float alpha;
 uniform int skybox;
 uniform int reflective;
 uniform int bumpy;
+uniform int threeD;
 layout (binding=0) uniform sampler2DShadow shadowTex;
 layout (binding=1) uniform samplerCube tex_map;
 layout (binding=2) uniform sampler2D norm_map;
+layout (binding=3) uniform sampler3D nose;
 layout (binding=5) uniform sampler2D samp;
 layout (binding=6) uniform sampler2D t;
 
@@ -99,9 +102,21 @@ vec3 perturb(vec3 N, float bumpHeight, float bumpWidth)
 	float x = originalVertex.x;
 	float y = originalVertex.y;
 	float z = originalVertex.z;
-	N.x = varyingNormal.x + bumpHeight*tan(bumpWidth*x);
-	N.y = varyingNormal.y + bumpHeight*tan(bumpWidth*y);
-	N.z = varyingNormal.z + bumpHeight*tan(bumpWidth*z);
+	if(threeD == 0)
+	{
+		N.x = varyingNormal.x + bumpHeight*tan(bumpWidth*x);
+		N.y = varyingNormal.y + bumpHeight*tan(bumpWidth*y);
+		N.z = varyingNormal.z + bumpHeight*tan(bumpWidth*z);
+	}
+	else
+	{
+		x += time;
+		y += time;
+		z += time;
+		N.x = varyingNormal.x + bumpHeight*tan(bumpWidth*x);
+		N.y = varyingNormal.y + bumpHeight*tan(bumpWidth*y);
+		N.z = varyingNormal.z + bumpHeight*tan(bumpWidth*z);
+	}
 	return normalize(N);	//return the normalized vector
 }
 
@@ -120,7 +135,7 @@ vec3 calcNewNormal()
 	vec3 bitangent = cross(tangent, normal);
 	mat3 tbn = mat3(tangent, bitangent, normal);
 	vec3 retrievedNormal = texture(norm_map, tc).xyz;
-	retrievedNormal = retrievedNormal * 2.0 - 1.0;	//convert from rgb space
+	retrievedNormal = (retrievedNormal * 2.0) - 1.0;	//convert from rgb space
 	vec3 newNormal = tbn * retrievedNormal;
 	newNormal = normalize(newNormal);
 	return newNormal;
@@ -162,13 +177,21 @@ void main(void)
 		{
 			vec3 diffuse = light.diffuse.xyz * material.diffuse.xyz * max(cosTheta,0.0);
 			vec3 specular = light.specular.xyz * material.specular.xyz * pow(max(cosPhi,0.0), material.shininess*3.0);
-			ambient = ((globalAmbient * material.ambient) + (light.ambient * material.ambient)).xyz * 0.5 + texture(samp, tc).xyz * 0.5;
-			lightColor = (diffuse + specular) * 0.5 + texture(samp, tc).xyz * 0.5;
+			if(threeD == 0)
+			{
+				ambient = ((globalAmbient * material.ambient) + (light.ambient * material.ambient)).xyz * 0.5 + texture(samp, tc).xyz * 0.5;
+				lightColor = (diffuse + specular) * 0.5 + texture(samp, tc).xyz * 0.5;
+			}
+			else
+			{
+				ambient = ((globalAmbient * material.ambient) + (light.ambient * material.ambient)).xyz * 0.5 + texture(nose, ((originalVertex + time) / 2.0 + 0.5) / 2.0 + 0.5 ).xyz * 0.5;
+				ambient = vec3(ambient.x + sin(time) * 0.1, ambient.y + cos(time) * 0.1, ambient.z + sin(time) * 0.1);
+				lightColor = (diffuse + specular) * 0.5 + texture(nose, originalVertex).xyz * 0.5;
+			}
 		}
 		else
 		{
 			vec3 r;
-			if(reflective != 0)
 			r = -reflect(V, N);
 			vec3 diffuse = light.diffuse.xyz * max(cosTheta,0.0);
 			vec3 specular = light.specular.xyz;

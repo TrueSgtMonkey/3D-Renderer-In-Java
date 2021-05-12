@@ -37,10 +37,11 @@ uniform float flipNormal;
 uniform float time;
 uniform float randy;
 uniform float ogLen;
+uniform float speed[];
 
 void main()
 {
-	float sLen = sin(time * randy) * 0.05;
+	float sLen = sin(randy + time) * speed[0];
 	vec3 op0 = gl_in[0].gl_Position.xyz;
 	vec3 op1 = gl_in[1].gl_Position.xyz;
 	vec3 op2 = gl_in[2].gl_Position.xyz;
@@ -50,10 +51,10 @@ void main()
 
 	ep0.x += sLen;
 	ep0.z += sLen;
-	sLen = cos(time * randy) * 0.1;
+	//sLen = rand(randy) * speed[1];
 	ep1.x += sLen;
 	ep1.z += sLen;
-	sLen = -sin(time * randy) * 0.15;
+	//sLen = rand(randy) * speed[2];
 	ep2.x += sLen;
 	ep2.z += sLen;
 
