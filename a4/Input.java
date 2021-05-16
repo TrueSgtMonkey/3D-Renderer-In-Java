@@ -16,7 +16,10 @@ public class Input implements KeyListener, MouseListener, MouseMotionListener, M
 	private boolean centered, isCentering, mouseMoved, mouseWheelMoved;
 	private Vector2f mousePos, oldMousePos, mouseMove;
 	private int inputs, keyInputs, mouseInputs, mouseWheelTicks;
-	
+
+	/**
+	 * singleton class
+	 */
 	private Input()
 	{
 		keys = new int[1024];
@@ -40,7 +43,10 @@ public class Input implements KeyListener, MouseListener, MouseMotionListener, M
 		oldMousePos = new Vector2f();
 		mouseMove = new Vector2f();
 	}
-	
+
+	/**
+	 * @return The only instance of this Input class. We only ever need 1.
+	 */
 	public static Input get()
 	{
 		if(input == null)
@@ -63,53 +69,113 @@ public class Input implements KeyListener, MouseListener, MouseMotionListener, M
 		mouseWheelTicks = 0;
 		mouseWheelMoved = false;
 	}
-	
+
+	/**
+	 * Deletes the only instance of this class.
+	 */
 	public static void resetInstance() { input = null; } 
 	
-	/**
+	/*
 		keyboard input checks
 	*/
-	
+
+	/**
+	 * @return the total number of inputs being pressed on either the mouse or the keyboard
+	 */
 	public int getNumInputs() { return inputs; }
+
+	/**
+	 * @return The total number of mouse inputs being pressed.
+	 */
 	public int getNumMouseInputs() { return mouseInputs; }
+
+	/**
+	 * @return The total number of keys being pressed.
+	 */
 	public int getNumKeyInputs() { return keyInputs; }
-	
+
+	/**
+	 * Returns whether or not the integer value of the key corresponds to one of the keys being currently pressed down.
+	 * @param keycode - The integer value of the current key being pressed.
+	 * @return a boolean - true = that key is pressed.
+	 */
 	public boolean isKeyPressed(int keycode)
 	{
 		return (keys[keycode] != -1);
 	}
-	
+
+	/**
+	 * Returns whether or not the integer value of the key corresponds to a key that is not pressed.
+	 * @param keycode - The integer value of the current key not being pressed.
+	 * @return a boolean - true = key is not pressed
+	 */
 	public boolean isKeyReleased(int keycode)
 	{
 		return (keys[keycode] == -1);
 	}
 	
-	/**
+	/*
 		Mouse button input checks
 	*/
+
+	/**
+	 * @return the integer value of the last mouse button that was pressed.
+	 */
 	public int getLastMousePress() { return lastMouse; }
-	
+
+	/**
+	 * @return Whether or not the mouse is currently inside the window
+	 */
 	public boolean isMouseOnScreen() { return onScreen; }
-	
+
+	/**
+	 * Returns whether or not the integer value passed in corresponds to one of the mouse buttons being pressed.
+	 * @param mousecode - int value that should correspond to a mouse value
+	 * @return - a boolean - true = mouse button pressed.
+	 */
 	public boolean isMousePressed(int mousecode)
 	{
 		return (mouseButtons[mousecode] != -1);
 	}
-	
+
+	/**
+	 * Returns whether or not the integer value of the mouse input corresponds to a key that is not pressed.
+	 * @param mousecode - The integer value of the current mouse input not being pressed.
+	 * @return a boolean - true = mouse input is not pressed
+	 */
 	public boolean isMouseReleased(int mousecode)
 	{
 		return (mouseButtons[mousecode] == -1);
 	}
-	
+
+	/**
+	 * @return Whether or not the mouse is centered in the middle of the screen
+	 */
 	public boolean getCentered() { return centered; }
-	
+
+	/**
+	 * @return the amount of change from the last location in the mouse
+	 */
 	public Vector2f getMouseMotion() { return mouseMove; }
+
+	/**
+	 * @return the current position of the mouse on the screen
+	 */
 	public Vector2f getMousePos() { return mousePos; }
-	
+
+	/**
+	 * @return Wheteher or not the mouse is moved.
+	 */
 	public boolean isMouseMoved() { return mouseMoved; }
-	
+
+	/**
+	 * @return Whether or not we are scrolling the mouse wheel
+	 */
 	public boolean isMouseWheelMoved() { return mouseWheelMoved; }
-	
+
+	/**
+	 * @return The amount we scrolled the mouse (more ticks = more scrolling)
+	 */
 	public int mouseWheelTicks() { return mouseWheelTicks; }
 	
 	@Override

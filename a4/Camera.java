@@ -24,7 +24,10 @@ public class Camera
 	private static Camera cam;
 	private float rotX, rotY, rotZ;
 	private Vector3f rotVec;
-	
+
+	/**
+	 * singleton class
+	 */
 	private Camera()
 	{
 		rotX = rotY = rotZ = 0.0f;
@@ -41,7 +44,8 @@ public class Camera
 		toggleLines = false;
 		delta = 0.0f;
 	}
-	
+
+	/** Get the single camera used by OpenGL and perform operations with it. */
 	public static Camera get()
 	{
 		if(cam == null)
@@ -50,10 +54,21 @@ public class Camera
 		}
 		return cam;
 	}
+
+	/** Get the rotation vector based on floats */
 	public Vector3f rotationVec() { return rotVec.set(rotX, rotY, rotZ); }
-	
-	public static void resetInstance() { cam = null; } 
-	
+
+	/** Delete the current OpenGL camera. */
+	public static void resetInstance() { cam = null; }
+
+	/**
+	 * Sets the location, speed, and rotation speed
+	 * @param x - x location
+	 * @param y - y location
+	 * @param z - z location
+	 * @param speed - speed that the camera moves or translates
+	 * @param rotSpeed - speed that the camera rotates
+	 */
 	public void setAttrib(float x, float y, float z, float speed, float rotSpeed)
 	{
 		c.set(x, y, z);
@@ -61,8 +76,12 @@ public class Camera
 		originalSpeed = speed;
 		this.rotSpeed = rotSpeed;
 	}
-	
-	/** c is the translation Matrix4f to multiply by */
+
+	/**
+	 * Gets the rotation matrix and multiplies it with the translation matrix.
+	 * @param delta - The amount of time since the last frame - the camera will keep this value in a variable.
+	 * @return - the rotation matrix multiplied by the translation matrix
+	 */
 	public Matrix4f viewMat(float delta)
 	{
 		if(isSprinting)
@@ -85,6 +104,11 @@ public class Camera
 		return viewMat;
 	}
 
+	/**
+	 * Gets the rotation matrix from the camera without the translation matrix
+	 * @param delta - the amount of time since the last frame - the Camera will keep this value
+	 * @return - the rotation matrix
+	 */
 	public Matrix4f rotMat(float delta)
 	{
 		this.delta = delta;
@@ -95,9 +119,15 @@ public class Camera
 				0.0f, 0.0f, 0.0f, 1.0f);
 		return rotMat;
 	}
-	
-	public Matrix4f posMat()
+
+	/**
+	 * Gets the translation matrix without the rotation matrix.
+	 * @param delta - the amount of time since the last frame - the Camera will keep this value
+	 * @return the translation matrix
+	 */
+	public Matrix4f posMat(float delta)
 	{
+		this.delta = delta;
 		viewMat.identity();
 		viewMat.mul(1.0f, 0.0f, 0.0f, 0.0f,
 					0.0f, 1.0f, 0.0f, 0.0f,
@@ -105,18 +135,31 @@ public class Camera
 					-c.x(), -c.y(), -c.z(), 1.0f);
 		return viewMat;
 	}
-	
+
+	/**
+	 * Gets the view matrix without creating a new one. WILL BE NULL IF YOU DON'T USE viewMat(float delta) FIRST!
+	 * @return - the current view matrix on this frame
+	 */
 	public Matrix4f getViewMat() { return viewMat; }
-	
+
+	/**
+	 * Adds the c vector by what is passed in (the c vector is used in the translation matrix)
+	 * @param vec - The vector that is added to the c vector.
+	 */
 	public void addPos(Vector3f vec)
 	{
+		//have to do this because JOMLs pass by reference
 		Vector3f newVec = new Vector3f(vec.x(), vec.y(), vec.z());
 		vec.mul(delta);
 		vec.mul(speed);
 		c.add(vec);
 		vec.set(newVec.x(), newVec.y(), newVec.z());
 	}
-	
+
+	/**
+	 * Subtracts the c vector by what is passed in (the c vector is used in the translation matrix)
+	 * @param vec - The vector that is added to the c vector.
+	 */
 	public void addNeg(Vector3f vec)
 	{
 		Vector3f newVec = new Vector3f(vec.x(), vec.y(), vec.z());
@@ -126,15 +169,43 @@ public class Camera
 		c.add(vec);
 		vec.set(newVec.x(), newVec.y(), newVec.z());
 	}
-	
+
+	/**
+	 * @return The "right" vector in relation to the camera
+	 */
 	public Vector3f u() { return u; }
+
+	/**
+	 * @return The "up" vector in relation to the camera
+	 */
 	public Vector3f v() { return v; }
+
+	/**
+	 * @return The "forward" vector in relation to the camera
+	 */
 	public Vector3f n() { return n; }
+
+	/**
+	 * @return The Camera's position
+	 */
 	public Vector3f c() { return c; }
-	
+
+	/**
+	 * Sets whether or not the camera is moving faster (sprinting) or not
+	 * @param sprinting - true = move faster, false = move normally
+	 */
 	public void setSprinting(boolean sprinting) { isSprinting = sprinting; }
+
+	/**
+	 * Returns whether or not the camera is moving faster (sprinting) or not
+	 * @return - isSprinting
+	 */
 	public boolean isSprinting() { return isSprinting; }
-	
+
+	/**
+	 * Rotates the Camera horizontally with the u, v, and n vectors on the y-axis
+	 * @param rS - the amount (in radians) to rotate by
+	 */
 	public void horRot(float rS)
 	{
 		u.rotateY(rS);
@@ -142,19 +213,30 @@ public class Camera
 		n.rotateY(rS);
 		rotY += rS;
 	}
-	
+
+	/**
+	 * Rotates the Camera vertically
+	 * @param rS - the amount (in radians) to rotate by
+	 */
 	public void vertRot(float rS)
 	{
 		v.rotateAxis(rS, u.x(), u.y(), u.z());
 		n.rotateAxis(rS, u.x(), u.y(), u.z());
 		rotX += rS;
 	}
-	
+
+	/**
+	 * @return The amount of time since the last frame
+	 */
 	public float getDelta() { return delta; }
-	
-	public boolean getToggleLines() { return toggleLines; }
-	public void setToggleLines(boolean toggleLines) { this.toggleLines = toggleLines; }
-	
+
+	/**
+	 * @return How fast our camera is moving.
+	 */
 	public float getSpeed() { return speed; }
+
+	/**
+	 * @return How fast our camera is rotating.
+	 */
 	public float getRotationSpeed() { return rotSpeed; }
 }

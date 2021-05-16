@@ -7,6 +7,7 @@ uniform mat4 shadowMatrices[6];
 
 out vec4 fragPos;
 
+//was trying to implement shadows with cube maps, but could not get it to work
 void main()
 {
 	for(int face = 0; face < 6; face++)

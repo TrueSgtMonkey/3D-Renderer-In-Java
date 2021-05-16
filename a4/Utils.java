@@ -220,6 +220,8 @@ public class Utils
 		gl.glGenTextures(1, textureIDs, 0);
 		int textureID = textureIDs[0];				// ID for the 0th texture object
 		gl.glBindTexture(GL_TEXTURE_2D, textureID);	// specifies the currently active 2D texture
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,	// MIPMAP Level, number of color components
 			textureImage.getWidth(), textureImage.getHeight(), 0,	// image size, border (ignored)
 			GL_RGBA, GL_UNSIGNED_BYTE,				// pixel format and data type

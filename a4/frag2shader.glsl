@@ -58,18 +58,21 @@ layout (binding=3) uniform sampler3D nose;
 layout (binding=5) uniform sampler2D samp;
 layout (binding=6) uniform sampler2D t;
 
+// basic shadow calculation (hard shadows)
 float shadowCalc()
 {
 	float depth = textureProj(shadowTex, shadow_coord);
 	return depth;
 }
 
+// used for pcf shadow calculations
 float lookup(float ox, float oy)
 {
 	float t = textureProj(shadowTex, shadow_coord + vec4(ox * 0.001 * shadow_coord.w, oy * 0.001 * shadow_coord.w, -0.0002, 0.0));
 	return t;
 }
 
+// fast PCF compared to the full PCF
 float basicPCF(float swidth)
 {
 	float shadowFactor = 0.0;
@@ -82,6 +85,7 @@ float basicPCF(float swidth)
 	return shadowFactor;
 }
 
+// looks really nice but is inefficient
 float expensivePCF(float swidth)
 {
 	float shadowFactor = 0.0;
@@ -97,6 +101,8 @@ float expensivePCF(float swidth)
 	return shadowFactor;
 }
 
+// uses tangents with bump mapping to make some cool looking bumps
+// if the object is "threeD" then it will move the bump mapping around
 vec3 perturb(vec3 N, float bumpHeight, float bumpWidth)
 {
 	float x = originalVertex.x;
@@ -120,6 +126,7 @@ vec3 perturb(vec3 N, float bumpHeight, float bumpWidth)
 	return normalize(N);	//return the normalized vector
 }
 
+// used for fog calculations
 float getFogFactor(float fogStart, float fogEnd)
 {
 	float dist = length(varyingVertPos);
@@ -127,6 +134,7 @@ float getFogFactor(float fogStart, float fogEnd)
 	return fogFactor;
 }
 
+// normal mapping calculations
 vec3 calcNewNormal()
 {
 	vec3 normal = normalize(varyingNormal);

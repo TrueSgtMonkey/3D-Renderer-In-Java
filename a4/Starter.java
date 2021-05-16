@@ -32,7 +32,7 @@ public class Starter extends JFrame implements GLEventListener
 	// model stuff
 	private ArrayList<Scene> staticScenes = new ArrayList<Scene>();
 	private Scene blueguy, redguy, chromeguy, lightball;
-	private NoiseObject noisy, noiseguy;
+	private NoiseObject noisy, noiseguy, forcefield;
 	private Scene noiseguyeye;
 
 	private SceneObject skybox, refspear1, refspear2,  reflectcarrierlegs, windows, grassGeo, dirtGeo;
@@ -316,13 +316,14 @@ public class Starter extends JFrame implements GLEventListener
 		refspear2.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		noiseguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, noiseguy.getTranslation(), noiseguy.getRotation(), null);
 		noiseguyeye.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, noiseguy.getTranslation(), noiseguy.getRotation(), null);
-
+		forcefield.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		reflectcarrierlegs.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 		blueguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, blueguyMove.set(blueguy.getTranslation().x, blueguy.getTranslation().y + (float)Math.sin(add) * -0.35f, blueguy.getTranslation().z), null, null);
 		redguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, redguyMove.set(redguy.getTranslation().x, redguy.getTranslation().y + (float)Math.sin(add * 2.5f) * 0.25f, redguy.getTranslation().z), null, null);
 		chromeguy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, chromeguyMove.set(chromeguy.getTranslation().x, chromeguy.getTranslation().y + (float)Math.sin(add * 0.5f) * 0.45f, chromeguy.getTranslation().z), chromeguyRotate.set(Camera.get().rotationVec().y - 1.5707963f, 0.0f, 1.0f, 0.0f), null);
 		lightball.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, Camera.get().c(), null, null);
 		windows.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+		gl.glProgramUniform1f(renderingProgram2, timeLoc, add * 0.75f);
 		noisy.passTwo(renderingProgram2, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, noisy.getTranslation(), null, null);
 
 		gl.glUseProgram(hairProgram);
@@ -360,6 +361,8 @@ public class Starter extends JFrame implements GLEventListener
 		installLights(hairProgram, vMat);
 
 		grassGeo.passTwo(hairProgram, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+		//forcefield.passTwo(hairProgram, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
+		//noisy.passTwo(hairProgram, mvLoc, projLoc, nLoc, sLoc, pMat, vMat, lightPmat, lightVmat, null, null, null);
 
 		installLights(hairProgram, vMat);
 		randy = rand.nextFloat() * 4.0f;
@@ -421,15 +424,22 @@ public class Starter extends JFrame implements GLEventListener
 		reflectcarrierlegs.setTransparent(true);
 		reflectcarrierlegs.setTransparency(new float[]{0.5f, 0.8f});
 
-		noisy = new NoiseObject(new ImportedModel("../noiseObjects/noise_beam.obj"), 128, 128, 128, 8);
+		noisy = new NoiseObject(new ImportedModel("../noiseObjects/noise_beam.obj"), 128, 128, 128, 4);
 		noisy.setScale(new Vector3f(16.0f, 16.0f, 16.0f));
 		noisy.setTransparent(true);
 		noisy.setTransparency(new float[]{0.25f, 0.85f});
+		noisy.setBumpy(1);
+		noisy.setBumpiness(new float[]{0.125f, 2.0f});
 		noiseguy = new NoiseObject(new ImportedModel("../noiseguy/noiseguy.obj"), 64, 64, 64, 2, Utils.loadTexture("normals/bumpy.png", true));
 		noiseguy.setTranslation(new Vector3f(-6.301f, 1.94f, -22.17f));
 		noiseguy.setRotation(new Vector4f());
 		noiseguy.setBumpy(1);
 		noiseguy.setBumpiness(new float[]{1.25f, 20.0f});
+		forcefield = new NoiseObject(new ImportedModel("../noiseObjects/forcefield.obj"), 128, 128, 128, 8);
+		forcefield.setTransparent(true);
+		forcefield.setTransparency(new float[]{0.35f, 0.65f});
+		forcefield.setBumpy(1);
+		forcefield.setBumpiness(new float[]{1.25f, 12.50f});
 
 		noiseguyeye = new Scene("noiseguy/eyes", "noiseguy/textures", "noiseguy/normals", new boolean[]{false});
 		//noisy.setReflective(1);
